@@ -1,6 +1,7 @@
 package com.bianque.health
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import com.bianque.health.base.security.PrivacyManager
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -11,7 +12,8 @@ class BianQueApp : Application() {
         super.onCreate()
 
         // 仅在 Debug 构建中种植 DebugTree，Release 构建不输出日志
-        if (BuildConfig.DEBUG) {
+        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (isDebuggable) {
             Timber.plant(Timber.DebugTree())
         }
 
