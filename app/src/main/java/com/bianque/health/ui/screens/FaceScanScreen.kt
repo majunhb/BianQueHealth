@@ -102,9 +102,9 @@ fun FaceScanScreen(onBack: () -> Unit) {
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
-                                layoutParams = ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                layoutParams = android.view.ViewGroup.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
                                 )
                                 scaleType = PreviewView.ScaleType.FILL_CENTER
                                 implementationMode = PreviewView.ImplementationMode.COMPATIBLE
@@ -273,5 +273,3 @@ private fun ErrorCard(message: String, onDismiss: () -> Unit) {
     }
 }
 
-// ViewGroup 引用
-private typealias ViewGroup = android.view.ViewGroup
