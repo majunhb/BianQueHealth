@@ -8,8 +8,6 @@ import timber.log.Timber
 class BianQueApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        if (com.bianque.health.BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
-        }
+        Timber.plant(Timber.DebugTree())
     }
 }

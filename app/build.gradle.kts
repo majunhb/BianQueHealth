@@ -66,5 +66,9 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.timber)
     implementation(libs.coil)
+    // CameraX (PreviewView in screens)
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
     debugImplementation(libs.compose.ui.tooling)
 }
