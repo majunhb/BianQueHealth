@@ -43,4 +43,8 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    // SQLCipher (Room encryption)
+    implementation(libs.sqlcipher)
+    // EncryptedSharedPreferences
+    implementation(libs.security.crypto)
 }

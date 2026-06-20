@@ -43,7 +43,11 @@ object CameraHelper {
         onFrame: (Bitmap) -> Unit
     ) {
         onFrameCallback = onFrame
-        if (isBound) return
+
+        // 如果已绑定但 lifecycle 或 preview 发生变化，先解绑再重新绑定
+        if (isBound) {
+            unbind()
+        }
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
         cameraProviderFuture.addListener({

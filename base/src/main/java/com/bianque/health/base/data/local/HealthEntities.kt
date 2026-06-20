@@ -2,9 +2,16 @@ package com.bianque.health.base.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "health_records")
+@Entity(
+    tableName = "health_records",
+    indices = [
+        Index(value = ["timestamp"]),
+        Index(value = ["module_type", "timestamp"])
+    ]
+)
 data class HealthRecordEntity(
     @PrimaryKey
     val id: String,

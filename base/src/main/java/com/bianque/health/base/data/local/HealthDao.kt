@@ -22,6 +22,9 @@ interface HealthDao {
     @Delete
     suspend fun deleteRecord(record: HealthRecordEntity)
 
+    @Query("SELECT * FROM health_records WHERE timestamp > :since ORDER BY timestamp DESC")
+    suspend fun getRecordsSince(since: Long): List<HealthRecordEntity>
+
     @Query("SELECT * FROM user_profiles LIMIT 1")
     suspend fun getUserProfile(): UserProfileEntity?
 

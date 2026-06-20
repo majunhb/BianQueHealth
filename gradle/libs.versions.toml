@@ -20,6 +20,8 @@ datastore = "1.1.1"
 timber = "5.0.1"
 coil = "2.7.0"
 material3 = "1.2.1"
+sqlcipher = "4.6.0"
+security-crypto = "1.1.0-alpha06"
 
 [libraries]
 # Compose
@@ -80,6 +82,10 @@ datastore = { group = "androidx.datastore", name = "datastore-preferences", vers
 # Utility
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 coil = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# SQLCipher (Room encryption)
+sqlcipher = { group = "net.zetetic", name = "android-database-sqlcipher", version.ref = "sqlcipher" }
+security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
