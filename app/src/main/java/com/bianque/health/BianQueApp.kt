@@ -1,6 +1,7 @@
 package com.bianque.health
 
 import android.app.Application
+import com.bianque.health.BuildConfig
 import com.bianque.health.base.security.PrivacyManager
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
