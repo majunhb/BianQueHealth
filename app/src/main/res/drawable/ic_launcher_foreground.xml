@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 十字医标 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 L54,48 M42,42 L66,42"
+        android:strokeWidth="6"
+        android:strokeColor="#FFFFFF" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,40 L62,40 L62,56 L46,56 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,36 L58,36 L58,64 L50,64 Z" />
+</vector>
