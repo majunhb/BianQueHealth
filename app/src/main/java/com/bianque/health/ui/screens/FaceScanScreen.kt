@@ -1,44 +1,17 @@
 package com.bianque.health.ui.screens
 
-import android.view.ViewGroup
+import android.graphics.Bitmap
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,30 +20,61 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
+import com.bianque.health.base.camera.CameraHelper
+import com.bianque.health.face.data.FaceMeshDetector
+import com.bianque.health.face.domain.model.FaceDiagnosisResult
+import com.bianque.health.ui.components.DiagnosisLabel
 import com.bianque.health.ui.theme.Danger40
 import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
-import kotlinx.coroutines.delay
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/**
+ * Hilt EntryPoint 用于从 Composable 中获取面诊检测器
+ */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface FaceScanEntryPoint {
+    fun faceMeshDetector(): FaceMeshDetector
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FaceScanScreen(onBack: () -> Unit) {
     var isAnalyzing by remember { mutableStateOf(false) }
     var diagnosisResult by remember { mutableStateOf<FaceDiagnosisResult?>(null) }
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+
+    val detector = remember {
+        EntryPointAccessors.fromApplication(context, FaceScanEntryPoint::class.java).faceMeshDetector()
+    }
+
+    // 清理 CameraX
+    DisposableEffect(Unit) {
+        onDispose { CameraHelper.unbind() }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("面诊") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
-                        )
+                    IconButton(onClick = {
+                        CameraHelper.unbind()
+                        onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -86,14 +90,15 @@ fun FaceScanScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Camera preview area
+            // 摄像头预览 / 结果展示
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                if (diagnosisResult == null) {
+                if (diagnosisResult == null && errorMessage == null) {
+                    // 摄像头预览
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
@@ -104,35 +109,28 @@ fun FaceScanScreen(onBack: () -> Unit) {
                                 scaleType = PreviewView.ScaleType.FILL_CENTER
                                 implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                                 post {
-                                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                                    cameraProviderFuture.addListener({
-                                        val cameraProvider = cameraProviderFuture.get()
-                                        val preview = Preview.Builder().build().also {
-                                            it.surfaceProvider = surfaceProvider
-                                        }
-                                        val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-                                        try {
-                                            cameraProvider.unbindAll()
-                                            cameraProvider.bindToLifecycle(
-                                                lifecycleOwner,
-                                                cameraSelector,
-                                                preview
-                                            )
-                                        } catch (_: Exception) {
-                                            // Camera binding failed
-                                        }
-                                    }, ContextCompat.getMainExecutor(ctx))
+                                    CameraHelper.bind(
+                                        lifecycleOwner = lifecycleOwner,
+                                        previewView = this,
+                                        cameraFacing = CameraSelector.LENS_FACING_FRONT,
+                                        onFrame = { bitmap -> capturedBitmap = bitmap }
+                                    )
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-                } else {
-                    // Show diagnosis result
+                } else if (diagnosisResult != null) {
+                    // 诊断结果
                     FaceDiagnosisResultCard(result = diagnosisResult!!)
+                } else if (errorMessage != null) {
+                    // 错误提示
+                    ErrorCard(message = errorMessage!!) {
+                        errorMessage = null
+                    }
                 }
 
-                // Analyzing overlay
+                // 分析中遮罩
                 if (isAnalyzing) {
                     Box(
                         modifier = Modifier
@@ -141,96 +139,73 @@ fun FaceScanScreen(onBack: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(48.dp)
-                            )
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "正在分析面部特征...",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text("正在分析面部特征...", color = Color.White, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
             }
 
-            // Bottom action button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
+            // 底部按钮
+            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                 if (diagnosisResult == null) {
                     Button(
                         onClick = {
+                            val bitmap = capturedBitmap
+                            if (bitmap == null) {
+                                errorMessage = "请对准面部，确保光线充足"
+                                return@Button
+                            }
                             isAnalyzing = true
+                            scope.launch {
+                                try {
+                                    val result = withContext(Dispatchers.Default) {
+                                        detector.detect(bitmap)
+                                    }
+                                    diagnosisResult = result
+                                } catch (e: Exception) {
+                                    errorMessage = "面部分析失败: ${e.message}"
+                                } finally {
+                                    isAnalyzing = false
+                                }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isAnalyzing,
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            text = "开始面诊",
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        Text("开始面诊", style = MaterialTheme.typography.titleLarge)
                     }
                 } else {
                     Button(
                         onClick = {
                             diagnosisResult = null
-                            isAnalyzing = false
+                            capturedBitmap = null
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Warm40
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = Warm40)
                     ) {
-                        Text(
-                            text = "重新检测",
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        Text("重新检测", style = MaterialTheme.typography.titleLarge)
                     }
                 }
             }
         }
     }
-
-    // Simulate analysis delay
-    if (isAnalyzing) {
-        LaunchedEffect(Unit) {
-            delay(2000)
-            isAnalyzing = false
-            diagnosisResult = FaceDiagnosisResult(
-                complexion = "面色红润",
-                glossLevel = "光泽正常",
-                abnormalities = "无明显异常",
-                constitutionHint = "平和质倾向"
-            )
-        }
-    }
 }
-
-data class FaceDiagnosisResult(
-    val complexion: String,
-    val glossLevel: String,
-    val abnormalities: String,
-    val constitutionHint: String
-)
 
 @Composable
 private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = "面诊结果",
@@ -239,32 +214,64 @@ private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
-            DiagnosisRow(label = "面色", value = result.complexion)
-            DiagnosisRow(label = "光泽度", value = result.glossLevel)
-            DiagnosisRow(label = "异常表现", value = result.abnormalities)
-            DiagnosisRow(label = "体质倾向", value = result.constitutionHint)
+            DiagnosisLabel(label = "整体面色", value = result.overallComplexion)
+            DiagnosisLabel(label = "光泽度", value = "${(result.glossLevel * 100).toInt()}%")
+            DiagnosisLabel(label = "置信度", value = "${(result.confidence * 100).toInt()}%")
+
+            if (result.regions.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "面部分区分析",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Green40,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                result.regions.forEach { region ->
+                    DiagnosisLabel(label = region.name, value = region.color)
+                }
+            }
+
+            if (result.abnormalities.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "提示",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Danger40,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                result.abnormalities.forEach { issue ->
+                    Text(
+                        text = "• $issue",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun DiagnosisRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+private fun ErrorCard(message: String, onDismiss: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Danger40.copy(alpha = 0.1f))
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text("提示", style = MaterialTheme.typography.headlineMedium, color = Danger40)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(message, style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onDismiss, shape = RoundedCornerShape(8.dp)) {
+                Text("重试")
+            }
+        }
     }
 }
+
+// ViewGroup 引用
+private typealias ViewGroup = android.view.ViewGroup
