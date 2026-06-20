@@ -40,13 +40,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bianque.health.bp.domain.model.BloodPressureResult
+import com.bianque.health.engine.data.DiagnosisCache
 import com.bianque.health.ui.theme.Danger40
 import com.bianque.health.ui.theme.Green40
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.delay
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface BPScanEntryPoint {
+    fun diagnosisCache(): DiagnosisCache
+}
 
 data class BPRecord(
     val systolic: Int,
@@ -71,6 +84,11 @@ fun BloodPressureScreen(onBack: () -> Unit) {
                 BPRecord(119, 79, 71, "2026-06-17 20:00")
             )
         )
+    }
+
+    val context = LocalContext.current
+    val diagnosisCache = remember {
+        EntryPointAccessors.fromApplication(context, BPScanEntryPoint::class.java).diagnosisCache()
     }
 
     Scaffold(
@@ -304,6 +322,14 @@ fun BloodPressureScreen(onBack: () -> Unit) {
             history = listOf(
                 BPRecord(currentSystolic, currentDiastolic, currentHeartRate, now)
             ) + history
+            diagnosisCache.bpResult = BloodPressureResult(
+                systolic = currentSystolic,
+                diastolic = currentDiastolic,
+                heartRate = currentHeartRate,
+                measurementMethod = "模拟",
+                deviceName = null,
+                timestamp = System.currentTimeMillis()
+            )
             isMeasuring = false
         }
     }

@@ -31,6 +31,8 @@ dependencies {
     implementation(project(":module_pulse"))
     implementation(libs.coroutines.android)
     implementation(libs.timber)
+    // OkHttp (通义千问 REST API)
+    implementation(libs.okhttp)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 }

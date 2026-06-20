@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.bianque.health.base.camera.CameraHelper
+import com.bianque.health.engine.data.DiagnosisCache
 import com.bianque.health.face.data.FaceMeshDetector
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import com.bianque.health.ui.components.DiagnosisLabel
@@ -42,6 +43,7 @@ import kotlinx.coroutines.withContext
 @InstallIn(SingletonComponent::class)
 interface FaceScanEntryPoint {
     fun faceMeshDetector(): FaceMeshDetector
+    fun diagnosisCache(): DiagnosisCache
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +60,9 @@ fun FaceScanScreen(onBack: () -> Unit) {
 
     val detector = remember {
         EntryPointAccessors.fromApplication(context, FaceScanEntryPoint::class.java).faceMeshDetector()
+    }
+    val diagnosisCache = remember {
+        EntryPointAccessors.fromApplication(context, FaceScanEntryPoint::class.java).diagnosisCache()
     }
 
     // 清理 CameraX
@@ -164,6 +169,7 @@ fun FaceScanScreen(onBack: () -> Unit) {
                                         detector.detect(bitmap)
                                     }
                                     diagnosisResult = result
+                                    diagnosisCache.faceResult = result
                                 } catch (e: Exception) {
                                     errorMessage = "面部分析失败: ${e.message}"
                                 } finally {

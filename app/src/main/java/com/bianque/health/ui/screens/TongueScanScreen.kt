@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.bianque.health.base.camera.CameraHelper
+import com.bianque.health.engine.data.DiagnosisCache
 import com.bianque.health.tongue.data.TongueFeatureExtractor
 import com.bianque.health.tongue.data.TongueSegmenter
 import com.bianque.health.tongue.domain.model.TongueDiagnosisResult
@@ -44,6 +45,7 @@ import kotlinx.coroutines.withContext
 interface TongueScanEntryPoint {
     fun tongueSegmenter(): TongueSegmenter
     fun tongueFeatureExtractor(): TongueFeatureExtractor
+    fun diagnosisCache(): DiagnosisCache
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +65,9 @@ fun TongueScanScreen(onBack: () -> Unit) {
     }
     val extractor = remember {
         EntryPointAccessors.fromApplication(context, TongueScanEntryPoint::class.java).tongueFeatureExtractor()
+    }
+    val diagnosisCache = remember {
+        EntryPointAccessors.fromApplication(context, TongueScanEntryPoint::class.java).diagnosisCache()
     }
 
     // 清理 CameraX
@@ -172,6 +177,7 @@ fun TongueScanScreen(onBack: () -> Unit) {
                                         extractor.extract(masked)
                                     }
                                     diagnosisResult = result
+                                    diagnosisCache.tongueResult = result
                                 } catch (e: Exception) {
                                     errorMessage = "舌象分析失败: ${e.message}"
                                 } finally {

@@ -39,12 +39,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bianque.health.engine.data.DiagnosisCache
+import com.bianque.health.pulse.domain.model.PulseDiagnosisResult
 import com.bianque.health.ui.theme.Green40
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.delay
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface PulseScanEntryPoint {
+    fun diagnosisCache(): DiagnosisCache
+}
 
 data class PulseRecord(
     val pulseRate: Int,
@@ -69,6 +82,11 @@ fun PulseDiagnosisScreen(onBack: () -> Unit) {
                 PulseRecord(68, "平脉", "适中", "2026-06-17 21:00")
             )
         )
+    }
+
+    val context = LocalContext.current
+    val diagnosisCache = remember {
+        EntryPointAccessors.fromApplication(context, PulseScanEntryPoint::class.java).diagnosisCache()
     }
 
     Scaffold(
@@ -301,6 +319,14 @@ fun PulseDiagnosisScreen(onBack: () -> Unit) {
             history = listOf(
                 PulseRecord(currentPulseRate, currentPulseType, currentPulseStrength, now)
             ) + history
+            diagnosisCache.pulseResult = PulseDiagnosisResult(
+                pulseRate = currentPulseRate,
+                pulseRhythm = "规律",
+                pulseStrength = currentPulseStrength,
+                pulseType = currentPulseType,
+                pulseFeatures = emptyMap(),
+                confidence = 0.8f
+            )
             isMeasuring = false
         }
     }
