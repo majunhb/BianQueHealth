@@ -1,38 +1,30 @@
 package com.bianque.health.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MonitorHeart
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.bianque.health.ui.components.HealthModuleCard
-import com.bianque.health.ui.theme.Green40
+import com.bianque.health.R
+import com.bianque.health.ui.theme.*
 
-data class HealthModule(
-    val title: String,
-    val description: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val backgroundColor: Color
+data class ModuleCard(
+    val titleResId: Int,
+    val descriptionResId: Int,
+    val icon: ImageVector,
+    val color: Color
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,55 +37,33 @@ fun MainScreen(
     onNavigateToReport: () -> Unit
 ) {
     val modules = listOf(
-        HealthModule(
-            title = "面诊",
-            description = "面部气色分析",
-            icon = Icons.Default.Face,
-            backgroundColor = Color(0xFFE64A19)
-        ),
-        HealthModule(
-            title = "舌诊",
-            description = "舌象特征辨识",
-            icon = Icons.Default.Visibility,
-            backgroundColor = Color(0xFFC2185B)
-        ),
-        HealthModule(
-            title = "血压",
-            description = "血压心率监测",
-            icon = Icons.Default.Favorite,
-            backgroundColor = Color(0xFF1976D2)
-        ),
-        HealthModule(
-            title = "脉诊",
-            description = "脉象采集分析",
-            icon = Icons.Default.MonitorHeart,
-            backgroundColor = Color(0xFF7B1FA2)
-        ),
-        HealthModule(
-            title = "健康报告",
-            description = "综合健康评估",
-            icon = Icons.Default.Assessment,
-            backgroundColor = Green40
-        )
+        ModuleCard(R.string.module_face, R.string.module_face_desc, Icons.Default.Face, Green40),
+        ModuleCard(R.string.module_tongue, R.string.module_tongue_desc, Icons.Default.RemoveRedEye, Orange40),
+        ModuleCard(R.string.module_bp, R.string.module_bp_desc, Icons.Default.MonitorHeart, Danger40),
+        ModuleCard(R.string.module_pulse, R.string.module_pulse_desc, Icons.Default.Favorite, Blue40),
+        ModuleCard(R.string.module_report, R.string.module_report_desc, Icons.Default.Assessment, Purple40)
     )
 
     val onClickMap = listOf(
-        onNavigateToFace,
-        onNavigateToTongue,
-        onNavigateToBP,
-        onNavigateToPulse,
-        onNavigateToReport
+        onNavigateToFace, onNavigateToTongue, onNavigateToBP, onNavigateToPulse, onNavigateToReport
     )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "扁鹊健康",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            stringResource(R.string.app_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -102,36 +72,62 @@ fun MainScreen(
             )
         }
     ) { innerPadding ->
-        Box(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(modules.size) { index ->
-                    val module = modules[index]
-                    HealthModuleCard(
-                        title = module.title,
-                        description = module.description,
-                        icon = module.icon,
-                        backgroundColor = module.backgroundColor,
-                        onClick = onClickMap[index]
+            itemsIndexed(modules) { index, module ->
+                ElevatedCard(
+                    onClick = onClickMap[index],
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = module.color.copy(alpha = 0.1f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    module.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = module.color
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            stringResource(module.titleResId),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            stringResource(module.descriptionResId),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
-            // 副标题
-            Text(
-                text = "多模态中医健康检测",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.padding(start = 16.dp, top = 8.dp)
-            )
         }
     }
 }

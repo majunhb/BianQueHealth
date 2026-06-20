@@ -1,4 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">扁鹊健康</string>
+    <string name="app_subtitle">多模态中医健康检测</string>
+
+    <!-- 通用 -->
+    <string name="back">返回</string>
+    <string name="retry">重新检测</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="loading">加载中…</string>
+    <string name="measuring">测量中…</string>
+    <string name="no_history">暂无历史记录</string>
+    <string name="history_title">历史记录</string>
+
+    <!-- 主页面 -->
+    <string name="module_face">面诊</string>
+    <string name="module_face_desc">通过面部特征分析气血状态</string>
+    <string name="module_tongue">舌诊</string>
+    <string name="module_tongue_desc">舌象分析辅助中医辨证</string>
+    <string name="module_bp">血压</string>
+    <string name="module_bp_desc">实时血压监测与趋势分析</string>
+    <string name="module_pulse">脉诊</string>
+    <string name="module_pulse_desc">脉象采集与智能分析</string>
+    <string name="module_report">健康报告</string>
+    <string name="module_report_desc">综合体质评估与健康建议</string>
+
+    <!-- 面诊 -->
+    <string name="face_scan_title">面部扫描</string>
+    <string name="start_face_scan">开始面部分析</string>
+    <string name="analyzing_face">正在分析面部特征…</string>
+    <string name="face_result_title">面诊结果</string>
+    <string name="face_region_title">面部区域分析</string>
+
+    <!-- 舌诊 -->
+    <string name="tongue_scan_title">舌象采集</string>
+    <string name="start_tongue_scan">开始舌象分析</string>
+    <string name="analyzing_tongue">正在分析舌象特征…</string>
+    <string name="tongue_result_title">舌诊结果</string>
+
+    <!-- 脉诊 -->
+    <string name="pulse_title">脉诊</string>
+    <string name="current_pulse">当前脉率</string>
+    <string name="start_pulse_measure">开始测量</string>
+    <string name="bpm_unit">BPM</string>
+
+    <!-- 血压 -->
+    <string name="bp_title">血压</string>
+    <string name="current_bp">当前血压</string>
+    <string name="start_bp_measure">开始测量</string>
+    <string name="mmhg_unit">mmHg</string>
+    <string name="heart_rate_label">心率</string>
+
+    <!-- 诊断标签 -->
+    <string name="label_complexion">面色</string>
+    <string name="label_gloss">光泽度</string>
+    <string name="label_confidence">置信度</string>
+    <string name="label_tongue_color">舌色</string>
+    <string name="label_coating_color">苔色</string>
+    <string name="label_coating_thickness">苔厚</string>
+    <string name="label_coating_moisture">苔质</string>
+    <string name="label_tongue_shape">舌形</string>
+    <string name="label_pulse_type">脉象</string>
+    <string name="label_pulse_strength">力度</string>
+    <string name="label_tips">提示</string>
+    <string name="tcm_interpretation">中医解读</string>
+
+    <!-- 健康报告 -->
+    <string name="report_title">健康报告</string>
+    <string name="report_generating">正在生成健康报告…</string>
+    <string name="report_ai_hint">AI 正在综合四诊数据进行分析</string>
+    <string name="report_incomplete">诊断数据不完整</string>
+    <string name="report_incomplete_hint">请先完成以下检测：</string>
+    <string name="report_error">报告生成失败</string>
+    <string name="body_type_result">体质辨识结果</string>
+    <string name="four_diagnosis_summary">四诊摘要</string>
+    <string name="personalized_advice">个性化建议</string>
+    <string name="risk_warning">风险提示</string>
+    <string name="diet_advice">饮食调理</string>
+    <string name="exercise_advice">运动建议</string>
+    <string name="lifestyle_advice">作息调整</string>
+    <string name="emotional_advice">情绪管理</string>
+    <string name="priority_important">重要</string>
+    <string name="priority_suggest">建议</string>
+    <string name="priority_reference">参考</string>
+    <string name="disclaimer">本报告由 AI 生成，仅供参考，不构成医疗诊断或处方建议。如有健康问题，请咨询专业医师。</string>
 </resources>

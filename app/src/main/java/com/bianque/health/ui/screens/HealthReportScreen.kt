@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,12 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bianque.health.R
 import com.bianque.health.engine.domain.model.BodyType
 import com.bianque.health.engine.domain.model.HealthReport
 import com.bianque.health.engine.domain.model.Recommendation
@@ -42,10 +45,10 @@ fun HealthReportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("健康报告") },
+                title = { Text(stringResource(R.string.report_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,13 +78,13 @@ private fun LoadingContent(padding: PaddingValues) {
             CircularProgressIndicator(modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "正在生成健康报告...",
+                stringResource(R.string.report_generating),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "AI 正在综合四诊数据进行分析",
+                stringResource(R.string.report_ai_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
@@ -109,13 +112,13 @@ private fun IncompleteContent(padding: PaddingValues, missing: List<String>) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "诊断数据不完整",
+                stringResource(R.string.report_incomplete),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "请先完成以下检测：${missing.joinToString("、")}",
+                stringResource(R.string.report_incomplete_hint) + " " + missing.joinToString("、"),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -144,7 +147,7 @@ private fun ErrorContent(padding: PaddingValues, message: String) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "报告生成失败",
+                stringResource(R.string.report_error),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -185,7 +188,7 @@ private fun ReportContent(padding: PaddingValues, report: HealthReport) {
 
         // 个性化建议
         Text(
-            "个性化建议",
+            stringResource(R.string.personalized_advice),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -215,7 +218,7 @@ private fun BodyTypeCard(bodyType: BodyType, confidence: Float) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "体质辨识结果",
+                stringResource(R.string.body_type_result),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -251,15 +254,15 @@ private fun DiagnosisSummaryCard(face: String, tongue: String, pulse: String, bp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "四诊摘要",
+                stringResource(R.string.four_diagnosis_summary),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(12.dp))
-            DiagnosisRow(Icons.Default.Face, "面诊", face)
-            DiagnosisRow(Icons.Default.RemoveRedEye, "舌诊", tongue)
-            DiagnosisRow(Icons.Default.Favorite, "脉诊", pulse)
-            DiagnosisRow(Icons.Default.MonitorHeart, "血压", bp)
+            DiagnosisRow(Icons.Default.Face, stringResource(R.string.module_face), face)
+            DiagnosisRow(Icons.Default.RemoveRedEye, stringResource(R.string.module_tongue), tongue)
+            DiagnosisRow(Icons.Default.Favorite, stringResource(R.string.module_pulse), pulse)
+            DiagnosisRow(Icons.Default.MonitorHeart, stringResource(R.string.module_bp), bp)
         }
     }
 }
@@ -320,8 +323,8 @@ private fun RiskAssessmentCard(risks: List<String>) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "风险提示",
-                    style = MaterialTheme.typography.titleSmall,
+                stringResource(R.string.risk_warning),
+                style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -342,17 +345,17 @@ private fun RiskAssessmentCard(risks: List<String>) {
 @Composable
 private fun RecommendationCard(recommendation: Recommendation) {
     val (icon, label, color) = when (recommendation.category) {
-        "diet" -> Triple(Icons.Default.Restaurant, "饮食调理", Color(0xFF4CAF50))
-        "exercise" -> Triple(Icons.Default.DirectionsRun, "运动建议", Color(0xFF2196F3))
-        "lifestyle" -> Triple(Icons.Default.Bedtime, "作息调整", Color(0xFF9C27B0))
-        "emotional" -> Triple(Icons.Default.SelfImprovement, "情绪管理", Color(0xFFFF9800))
+        "diet" -> Triple(Icons.Default.Restaurant, stringResource(R.string.diet_advice), Color(0xFF4CAF50))
+        "exercise" -> Triple(Icons.Default.DirectionsRun, stringResource(R.string.exercise_advice), Color(0xFF2196F3))
+        "lifestyle" -> Triple(Icons.Default.Bedtime, stringResource(R.string.lifestyle_advice), Color(0xFF9C27B0))
+        "emotional" -> Triple(Icons.Default.SelfImprovement, stringResource(R.string.emotional_advice), Color(0xFFFF9800))
         else -> Triple(Icons.Default.Info, "建议", Color(0xFF607D8B))
     }
 
     val priorityLabel = when (recommendation.priority) {
-        1 -> "重要"
-        2 -> "建议"
-        else -> "参考"
+        1 -> stringResource(R.string.priority_important)
+        2 -> stringResource(R.string.priority_suggest)
+        else -> stringResource(R.string.priority_reference)
     }
 
     Card(
@@ -425,7 +428,7 @@ private fun DisclaimerCard() {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "本报告由 AI 生成，仅供参考，不构成医疗诊断或处方建议。如有健康问题，请咨询专业医师。",
+                stringResource(R.string.disclaimer),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 lineHeight = 18.sp

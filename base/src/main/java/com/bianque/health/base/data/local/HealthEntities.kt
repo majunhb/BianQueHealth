@@ -21,6 +21,8 @@ data class HealthRecordEntity(
     val moduleType: String,
     @ColumnInfo(name = "result_json")
     val resultJson: String,
+    @ColumnInfo(name = "schema_version")
+    val schemaVersion: Int = 1,
     val timestamp: Long,
     val confidence: Float,
     @ColumnInfo(name = "sync_status")
