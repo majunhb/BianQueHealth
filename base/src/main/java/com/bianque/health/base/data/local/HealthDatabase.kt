@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.bianque.health.base.security.DatabasePassphraseManager
-import net.zetetic.database.sqlcipher.SupportFactory
+import net.sqlcipher.database.SupportFactory
 import timber.log.Timber
 
 @Database(

@@ -23,7 +23,6 @@
 -dontwarn androidx.room.**
 
 # --- SQLCipher ---
--keep class net.zetetic.database.** { *; }
 -keep class net.sqlcipher.** { *; }
 -dontwarn net.sqlcipher.**
 
