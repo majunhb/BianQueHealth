@@ -28,4 +28,5 @@ dependencies {
     implementation(libs.camerax.core)
     implementation(libs.coroutines.android)
     implementation(libs.timber)
+    implementation(libs.hilt.android)
 }

@@ -26,4 +26,5 @@ dependencies {
     implementation(libs.tflite)
     implementation(libs.coroutines.android)
     implementation(libs.timber)
+    implementation(libs.hilt.android)
 }

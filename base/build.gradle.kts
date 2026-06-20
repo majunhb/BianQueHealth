@@ -35,4 +35,7 @@ dependencies {
     implementation(libs.camerax.view)
     // Lifecycle
     implementation(libs.lifecycle.runtime)
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 }

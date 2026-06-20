@@ -29,4 +29,5 @@ dependencies {
     implementation(project(":module_pulse"))
     implementation(libs.coroutines.android)
     implementation(libs.timber)
+    implementation(libs.hilt.android)
 }
