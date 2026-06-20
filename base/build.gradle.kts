@@ -29,4 +29,10 @@ dependencies {
     implementation(libs.datastore)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
+    // CameraX
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    // Lifecycle
+    implementation(libs.lifecycle.runtime)
 }
