@@ -372,6 +372,12 @@ private fun interpretTongue(result: TongueDiagnosisResult): String {
     }
     when (result.sublingualVein) {
         "怒张" -> sb.append("舌下络脉怒张，提示血瘀。")
+        "正常" -> sb.append("舌下络脉正常，气血运行通畅。")
+    }
+    when (result.tongueMobility) {
+        "歪斜" -> sb.append("舌体歪斜，提示中风或中风先兆，建议及时就医排查。")
+        "僵硬" -> sb.append("舌体僵硬，运动不灵活，多见于热入心包或风痰阻络。")
+        "灵活" -> sb.append("舌体灵活，运动自如。")
     }
     if (sb.isEmpty()) sb.append("舌象基本正常，请保持良好生活习惯。")
     return sb.toString()

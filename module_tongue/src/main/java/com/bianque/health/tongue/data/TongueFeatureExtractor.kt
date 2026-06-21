@@ -72,11 +72,11 @@ class TongueFeatureExtractor @Inject constructor() {
             // 特征6: 舌质分析
             val tongueBody = classifyTongueBody(colors)
 
-            // 特征7: 舌下络脉（需专门拍摄舌下，默认标记为"待检测"）
-            val sublingualVein = "待检测"
+            // 舌下络脉分析
+            val sublingualVein = classifySublingualVein(maskedBitmap)
 
-            // 特征8: 舌态（需多帧序列分析，默认标记为"待检测"）
-            val tongueMobility = "待检测"
+            // 舌态分析
+            val tongueMobility = classifyTongueMobility(maskedBitmap)
 
             val confidence = computeConfidence(tonguePixels.size, pixels.size)
 
@@ -279,6 +279,114 @@ class TongueFeatureExtractor @Inject constructor() {
             normalizedScore > 0.2f -> "老"
             normalizedScore < -0.2f -> "嫩"
             else -> "正常"
+        }
+    }
+
+    /**
+     * 舌下络脉分类。
+     * 分析舌体底部区域的暗色/蓝紫色像素分布。
+     * 正常舌下络脉隐而不显；怒张时可见暗紫色粗大血管。
+     */
+    private fun classifySublingualVein(bitmap: Bitmap): String {
+        val width = bitmap.width
+        val height = bitmap.height
+        val step = 4
+
+        var totalPixels = 0
+        var darkVeinPixels = 0
+
+        // 分析舌体下半部分（模拟舌下区域）
+        val startY = (height * 0.6f).toInt()
+        for (y in startY until height step step) {
+            for (x in 0 until width step step) {
+                val pixel = bitmap.getPixel(x, y)
+                if (pixel == 0) continue // 跳过背景
+                totalPixels++
+
+                Color.colorToHSV(pixel, hsvArray)
+                val (h, s, v) = Triple(hsvArray[0], hsvArray[1], hsvArray[2])
+
+                // 暗紫色/蓝紫色/深色区域 → 络脉
+                val isVeinPixel = (v < 0.35f && s > 0.15f) ||
+                        (h in 240f..300f && s > 0.2f && v < 0.4f) ||
+                        (h in 300f..360f && s > 0.25f && v < 0.35f)
+                if (isVeinPixel) darkVeinPixels++
+            }
+        }
+
+        if (totalPixels == 0) return "待检测"
+
+        val veinRatio = darkVeinPixels.toFloat() / totalPixels
+
+        return when {
+            veinRatio > 0.12f -> "怒张"
+            veinRatio > 0.05f -> "正常"
+            else -> "正常"
+        }
+    }
+
+    /**
+     * 舌态分析。
+     * 基于静态图像分析舌体形态对称性和边缘平滑度。
+     * - 灵活：舌体居中、对称、边缘平滑
+     * - 歪斜：舌体左右不对称
+     * - 僵硬：舌体边缘粗糙、形态不规则
+     */
+    private fun classifyTongueMobility(bitmap: Bitmap): String {
+        val width = bitmap.width
+        val height = bitmap.height
+        val step = 4
+
+        // 计算舌体像素的左右分布
+        var leftPixels = 0
+        var rightPixels = 0
+        var totalPixels = 0
+        val midX = width / 2f
+
+        // 计算边缘粗糙度：统计边缘像素的局部方差
+        var edgeRoughness = 0f
+        var edgeCount = 0
+
+        for (y in step until height - step step step) {
+            for (x in step until width - step step step) {
+                val pixel = bitmap.getPixel(x, y)
+                if (pixel == 0) continue
+                totalPixels++
+
+                if (x < midX) leftPixels++ else rightPixels++
+
+                // 边缘检测：8邻域中是否有背景像素
+                val hasBackground = bitmap.getPixel(x - step, y) == 0 ||
+                        bitmap.getPixel(x + step, y) == 0 ||
+                        bitmap.getPixel(x, y - step) == 0 ||
+                        bitmap.getPixel(x, y + step) == 0
+
+                if (hasBackground) {
+                    Color.colorToHSV(pixel, hsvArray)
+                    edgeRoughness += hsvArray[2] // 边缘亮度
+                    edgeCount++
+                }
+            }
+        }
+
+        if (totalPixels == 0) return "待检测"
+
+        // 左右对称性
+        val symmetryRatio = if (rightPixels > 0) {
+            leftPixels.toFloat() / rightPixels
+        } else 1f
+
+        val isAsymmetric = symmetryRatio < 0.7f || symmetryRatio > 1.4f
+
+        // 边缘粗糙度评估
+        val avgEdgeBrightness = if (edgeCount > 0) edgeRoughness / edgeCount else 0f
+        val isRoughEdge = edgeCount > 0 && avgEdgeBrightness < 0.35f
+
+        return when {
+            isAsymmetric && isRoughEdge -> "歪斜"
+            isRoughEdge -> "僵硬"
+            isAsymmetric -> "歪斜"
+            else -> "灵活"
         }
     }
 

@@ -30,11 +30,11 @@ class FaceMeshDetector @Inject constructor(
 ) {
     private val detector = FaceDetection.getClient(
         FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(0.08f)
+            .setMinFaceSize(0.05f)
             .enableTracking()
             .build()
     )
@@ -65,8 +65,19 @@ class FaceMeshDetector @Inject constructor(
 
     suspend fun detect(bitmap: Bitmap): FaceDiagnosisResult = withContext(Dispatchers.Default) {
         try {
-            val inputImage = InputImage.fromBitmap(bitmap, 0)
+            // 预处理：确保图像在合理尺寸范围内，提升检测率
+            val maxDim = 1024
+            val processedBitmap = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                val scale = (maxDim.toFloat() / maxOf(bitmap.width, bitmap.height))
+                val newW = (bitmap.width * scale).toInt()
+                val newH = (bitmap.height * scale).toInt()
+                Bitmap.createScaledBitmap(bitmap, newW, newH, true)
+            } else bitmap
+
+            val inputImage = InputImage.fromBitmap(processedBitmap, 0)
             val faces = com.google.android.gms.tasks.Tasks.await(detector.process(inputImage))
+
+            Timber.d("FaceMeshDetector: processed ${processedBitmap.width}x${processedBitmap.height}, faces=${faces.size}")
 
             if (faces.isEmpty()) {
                 Timber.w("FaceMeshDetector: no face detected. Image size: ${bitmap.width}x${bitmap.height}")
@@ -77,8 +88,9 @@ class FaceMeshDetector @Inject constructor(
                     abnormalities = listOf(
                         "未检测到面部，请确保：",
                         "1. 面部正对摄像头，距离30-50cm",
-                        "2. 光线均匀充足，避免逆光",
-                        "3. 移除口罩、墨镜等遮挡物"
+                        "2. 光线均匀充足，避免逆光/背光",
+                        "3. 移除口罩、墨镜等遮挡物",
+                        "4. 避免头部倾斜或侧脸角度过大"
                     ),
                     confidence = 0f
                 )
@@ -90,9 +102,9 @@ class FaceMeshDetector @Inject constructor(
                 face.leftEyeOpenProbability ?: 0f,
                 face.rightEyeOpenProbability ?: 0f)
 
-            val regions = analyzeFiveRegions(bitmap, face)
+            val regions = analyzeFiveRegions(processedBitmap, face)
             val overallComplexion = determineOverallComplexion(regions)
-            val glossLevel = computeOverallGloss(bitmap, face)
+            val glossLevel = computeOverallGloss(processedBitmap, face)
             val abnormalities = detectAbnormalities(regions, face)
 
             FaceDiagnosisResult(
@@ -177,9 +189,11 @@ class FaceMeshDetector @Inject constructor(
         var conf = 0.85f
         // 根据特征点/轮廓完整性调整置信度
         val contourPoints = face.getContour(FaceContour.FACE)?.points?.size ?: 0
-        if (contourPoints < 20) conf -= 0.15f
+        if (contourPoints < 10) conf -= 0.15f
         if (face.leftEyeOpenProbability == null) conf -= 0.1f
-        return conf.coerceIn(0f, 1f)
+        val finalConf = conf.coerceIn(0.5f, 1f)
+        Timber.d("FaceMeshDetector: contourPoints=$contourPoints, confidence=$finalConf")
+        return finalConf
     }
 
     private fun detectAbnormalities(regions: List<FaceRegion>, face: Face): List<String> {

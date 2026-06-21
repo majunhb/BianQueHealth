@@ -19,9 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -201,7 +202,9 @@ fun FaceScanScreen(
 }
 
 /**
- * 人脸轮廓遮罩 — 半透明标准人脸轮廓线。
+ * 人脸轮廓遮罩 — 真实人脸形状轮廓线。
+ * 使用上方圆角矩形 + 下方收窄的曲线模拟人脸轮廓：
+ * 额头较宽 → 颧骨微收 → 下巴明显收窄。
  * 颜色根据检测状态变化：灰色(未检测到) → 黄色(定位中) → 绿色(定位成功)
  */
 @Composable
@@ -216,27 +219,116 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // 人脸椭圆轮廓（略大于舌形，适应面部比例）
-        val ovalWidth = canvasWidth * 0.55f
-        val ovalHeight = canvasHeight * 0.65f
-        val topLeft = Offset(
-            (canvasWidth - ovalWidth) / 2f,
-            (canvasHeight - ovalHeight) / 2f
-        )
+        // 人脸轮廓参数
+        val faceWidth = canvasWidth * 0.52f
+        val faceHeight = canvasHeight * 0.62f
+        val centerX = canvasWidth / 2f
+        val topY = (canvasHeight - faceHeight) / 2f
+
+        // 构建人脸轮廓路径：上方圆角 → 两侧微收 → 下巴收窄
+        val path = Path().apply {
+            val topLeft = Offset(centerX - faceWidth / 2f, topY)
+            val topRight = Offset(centerX + faceWidth / 2f, topY)
+            val chinY = topY + faceHeight
+            val chinWidth = faceWidth * 0.5f  // 下巴宽度约为额头的50%
+            val cheekNarrowY = topY + faceHeight * 0.55f  // 颧骨下方开始收窄
+            val jawStartY = topY + faceHeight * 0.72f  // 下颌线开始
+
+            // 额头圆弧（顶部）
+            val cornerRadius = faceWidth * 0.18f
+            moveTo(centerX - faceWidth / 2f + cornerRadius, topY)
+            // 顶部弧线
+            lineTo(centerX + faceWidth / 2f - cornerRadius, topY)
+            arcTo(
+                rect = Rect(
+                    centerX + faceWidth / 2f - cornerRadius * 2f,
+                    topY,
+                    centerX + faceWidth / 2f,
+                    topY + cornerRadius * 2f
+                ),
+                startAngleDegrees = -90f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+            // 右侧：从颧骨下方开始收窄到下巴
+            lineTo(centerX + faceWidth / 2f, cheekNarrowY)
+            // 右侧下颌线 → 下巴
+            lineTo(centerX + chinWidth / 2f, jawStartY)
+            lineTo(centerX + chinWidth / 2f, chinY)
+            // 下巴底部弧线
+            val chinRadius = chinWidth * 0.3f
+            arcTo(
+                rect = Rect(
+                    centerX - chinRadius,
+                    chinY - chinRadius * 1.5f,
+                    centerX + chinRadius,
+                    chinY + chinRadius * 0.5f
+                ),
+                startAngleDegrees = 0f,
+                sweepAngleDegrees = 180f,
+                forceMoveTo = false
+            )
+            // 左侧下颌线
+            lineTo(centerX - chinWidth / 2f, jawStartY)
+            lineTo(centerX - faceWidth / 2f, cheekNarrowY)
+            // 左侧回到顶部
+            lineTo(centerX - faceWidth / 2f, topY + cornerRadius)
+            arcTo(
+                rect = Rect(
+                    centerX - faceWidth / 2f,
+                    topY,
+                    centerX - faceWidth / 2f + cornerRadius * 2f,
+                    topY + cornerRadius * 2f
+                ),
+                startAngleDegrees = 180f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+            close()
+        }
 
         // 外轮廓
-        drawOval(
+        drawPath(
+            path = path,
             color = outlineColor.copy(alpha = 0.3f),
-            topLeft = topLeft,
-            size = Size(ovalWidth, ovalHeight),
             style = Stroke(width = 4f)
         )
 
         // 内轮廓
-        drawOval(
-            color = outlineColor.copy(alpha = 0.15f),
-            topLeft = Offset(topLeft.x + 10f, topLeft.y + 10f),
-            size = Size(ovalWidth - 20f, ovalHeight - 20f),
+        val innerPath = Path().apply {
+            val inset = 12f
+            val iw = faceWidth - inset * 2f
+            val ih = faceHeight - inset * 2f
+            val ix = centerX - iw / 2f
+            val iy = topY + inset
+            val icw = chinWidth * 0.7f
+
+            val icr = iw * 0.18f
+            moveTo(ix + icr, iy)
+            lineTo(ix + iw - icr, iy)
+            arcTo(
+                rect = Rect(ix + iw - icr * 2f, iy, ix + iw, iy + icr * 2f),
+                startAngleDegrees = -90f, sweepAngleDegrees = 90f, forceMoveTo = false
+            )
+            lineTo(ix + iw, iy + ih * 0.55f)
+            lineTo(centerX + icw / 2f, iy + ih * 0.72f)
+            lineTo(centerX + icw / 2f, iy + ih)
+            arcTo(
+                rect = Rect(centerX - icw * 0.3f, iy + ih - icw * 0.2f, centerX + icw * 0.3f, iy + ih + icw * 0.3f),
+                startAngleDegrees = 0f, sweepAngleDegrees = 180f, forceMoveTo = false
+            )
+            lineTo(centerX - icw / 2f, iy + ih * 0.72f)
+            lineTo(ix, iy + ih * 0.55f)
+            lineTo(ix, iy + icr)
+            arcTo(
+                rect = Rect(ix, iy, ix + icr * 2f, iy + icr * 2f),
+                startAngleDegrees = 180f, sweepAngleDegrees = 90f, forceMoveTo = false
+            )
+            close()
+        }
+        drawPath(
+            path = innerPath,
+            color = outlineColor.copy(alpha = 0.12f),
             style = Stroke(width = 2f)
         )
     }
