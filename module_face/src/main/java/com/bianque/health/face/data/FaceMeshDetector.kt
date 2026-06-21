@@ -10,6 +10,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import com.bianque.health.face.data.Rect
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -74,7 +75,7 @@ class FaceMeshDetector @Inject constructor(
 
         // ★ 所有矩形坐标必须clamp到bitmap范围内，防止越界
         // 额头区域 (bounding box 上部 1/3)
-        val foreheadRect = ColorAnalyzer.Rect(
+        val foreheadRect = Rect(
             bounds.left.coerceIn(0, bitmap.width - 1),
             bounds.top.coerceIn(0, bitmap.height - 1),
             bounds.right.coerceIn(1, bitmap.width),
@@ -90,7 +91,7 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 左脸颊 (bounding box 左侧 1/3，中部)
-        val leftCheekRect = ColorAnalyzer.Rect(
+        val leftCheekRect = Rect(
             bounds.left.coerceIn(0, bitmap.width - 1),
             (bounds.top + bounds.height() / 3).coerceIn(0, bitmap.height - 1),
             (bounds.left + bounds.width() / 3).coerceIn(1, bitmap.width),
@@ -106,7 +107,7 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 右脸颊 (bounding box 右侧 1/3，中部)
-        val rightCheekRect = ColorAnalyzer.Rect(
+        val rightCheekRect = Rect(
             (bounds.right - bounds.width() / 3).coerceIn(0, bitmap.width - 1),
             (bounds.top + bounds.height() / 3).coerceIn(0, bitmap.height - 1),
             bounds.right.coerceIn(1, bitmap.width),
@@ -122,7 +123,7 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 鼻梁区域 (面部中心)
-        val noseRect = ColorAnalyzer.Rect(
+        val noseRect = Rect(
             (bounds.left + bounds.width() / 3).coerceIn(0, bitmap.width - 1),
             (bounds.top + bounds.height() / 3).coerceIn(0, bitmap.height - 1),
             (bounds.right - bounds.width() / 3).coerceIn(1, bitmap.width),
@@ -138,7 +139,7 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 下巴区域
-        val chinRect = ColorAnalyzer.Rect(
+        val chinRect = Rect(
             (bounds.left + bounds.width() / 4).coerceIn(0, bitmap.width - 1),
             (bounds.bottom - bounds.height() / 4).coerceIn(0, bitmap.height - 1),
             (bounds.right - bounds.width() / 4).coerceIn(1, bitmap.width),
@@ -164,7 +165,7 @@ class FaceMeshDetector @Inject constructor(
 
     private suspend fun computeOverallGloss(bitmap: Bitmap, face: Face): Float {
         val bounds = face.boundingBox
-        val foreheadRect = ColorAnalyzer.Rect(
+        val foreheadRect = Rect(
             bounds.left.coerceIn(0, bitmap.width - 1),
             bounds.top.coerceIn(0, bitmap.height - 1),
             bounds.right.coerceIn(1, bitmap.width),
