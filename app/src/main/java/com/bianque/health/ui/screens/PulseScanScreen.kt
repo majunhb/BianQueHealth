@@ -1,6 +1,5 @@
 package com.bianque.health.ui.screens
 
-import android.graphics.Bitmap
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
@@ -8,11 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +31,6 @@ import com.bianque.health.R
 import com.bianque.health.base.camera.CameraHelper
 import com.bianque.health.ui.theme.Blue40
 import com.bianque.health.ui.theme.Danger40
-import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
 
 private val OutlineBlue = Color(0xFF007AFF)
@@ -46,7 +42,6 @@ fun PulseScanScreen(
     viewModel: PulseScanViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(Unit) {
@@ -103,7 +98,6 @@ fun PulseScanScreen(
                                         previewView = this,
                                         cameraFacing = CameraSelector.LENS_FACING_FRONT,
                                         onFrame = { bitmap ->
-                                            capturedBitmap = bitmap
                                             viewModel.processFrame(bitmap)
                                         }
                                     )
@@ -144,12 +138,12 @@ fun PulseScanScreen(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Text(
-                                    "帧数: ${uiState.frameCount}",
+                                    stringResource(R.string.pulse_frame_count, uiState.frameCount),
                                     color = Color.White.copy(alpha = 0.8f),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
-                                    "剩余: ${uiState.timeoutSeconds}s",
+                                    stringResource(R.string.pulse_time_remaining, uiState.timeoutSeconds),
                                     color = if (uiState.timeoutSeconds <= 10) Danger40 else Color.White.copy(alpha = 0.8f),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = if (uiState.timeoutSeconds <= 10) FontWeight.Bold else FontWeight.Normal
@@ -185,7 +179,7 @@ fun PulseScanScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("正在分析脉搏信号…", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.pulse_analyzing), color = Color.White, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -194,7 +188,7 @@ fun PulseScanScreen(
             // 底部免责声明
             if (uiState.isCapturing || uiState.diagnosisResult != null) {
                 Text(
-                    "本功能基于光学估算，结果仅供日常健康参考，\n不可作为医疗诊断依据。",
+                    stringResource(R.string.pulse_disclaimer),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -285,7 +279,7 @@ private fun PulseResultCard(result: com.bianque.health.pulse.domain.model.PulseD
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("收缩压", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.pulse_sbp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "${result.systolic}",
                         style = MaterialTheme.typography.headlineSmall,
@@ -295,7 +289,7 @@ private fun PulseResultCard(result: com.bianque.health.pulse.domain.model.PulseD
                     Text(stringResource(R.string.mmhg_unit), style = MaterialTheme.typography.bodySmall)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("舒张压", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.pulse_dbp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "${result.diastolic}",
                         style = MaterialTheme.typography.headlineSmall,
@@ -320,7 +314,7 @@ private fun PulseResultCard(result: com.bianque.health.pulse.domain.model.PulseD
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "置信度: ${(result.confidence * 100).toInt()}%",
+                stringResource(R.string.pulse_confidence, (result.confidence * 100).toInt()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

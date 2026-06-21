@@ -25,7 +25,6 @@ android {
 
 dependencies {
     implementation(project(":base"))
-    implementation(libs.tflite)
     implementation(libs.coroutines.android)
     implementation(libs.timber)
     implementation(libs.hilt.android)
