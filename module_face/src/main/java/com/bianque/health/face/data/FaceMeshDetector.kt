@@ -20,11 +20,12 @@ class FaceMeshDetector @Inject constructor(
 ) {
     private val detector = FaceDetection.getClient(
         FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(0.3f)
+            .setMinFaceSize(0.1f)
+            .enableTracking()
             .build()
     )
 

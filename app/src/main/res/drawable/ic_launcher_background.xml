@@ -4,7 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- 中医深绿背景 -->
     <path
         android:fillColor="#1B5E20"
         android:pathData="M0,0h108v108H0z" />
+    <!-- 柔和渐变光泽 -->
+    <path
+        android:fillColor="#2E7D32"
+        android:fillAlpha="0.3"
+        android:pathData="M0,0h108v54C54,54 0,54 0,0Z" />
 </vector>

@@ -4,16 +4,24 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 十字医标 -->
+    <!-- 中医葫芦瓶身 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,30 L54,48 M42,42 L66,42"
-        android:strokeWidth="6"
-        android:strokeColor="#FFFFFF" />
+        android:pathData="M44,58 C44,50 38,44 34,38 C30,32 30,24 34,20 C38,16 44,14 54,14 C64,14 70,16 74,20 C78,24 78,32 74,38 C70,44 64,50 64,58 L64,68 C64,76 58,82 54,86 C50,82 44,76 44,68 Z" />
+    <!-- 葫芦口 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M46,40 L62,40 L62,56 L46,56 Z" />
+        android:pathData="M48,8 L48,20 L60,20 L60,8 C60,6 58,4 54,4 C50,4 48,6 48,8 Z" />
+    <!-- 葫芦腰线 -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M42,56 L42,62 L66,62 L66,56 Z" />
+    <!-- 葫芦顶部藤蔓 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M50,36 L58,36 L58,64 L50,64 Z" />
+        android:pathData="M54,4 C54,2 56,0 58,0 C60,0 62,2 62,4" />
+    <!-- 葫芦底部太极点 -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M54,82 C54,82 52,84 54,86 C56,84 54,82 54,82 Z" />
 </vector>

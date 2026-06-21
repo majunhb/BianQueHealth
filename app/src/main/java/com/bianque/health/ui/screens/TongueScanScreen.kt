@@ -80,7 +80,7 @@ fun TongueScanScreen(
                                     CameraHelper.bind(
                                         lifecycleOwner = lifecycleOwner,
                                         previewView = this,
-                                        cameraFacing = CameraSelector.LENS_FACING_BACK,
+                                        cameraFacing = CameraSelector.LENS_FACING_FRONT,
                                         onFrame = { bitmap -> capturedBitmap = bitmap }
                                     )
                                 }
