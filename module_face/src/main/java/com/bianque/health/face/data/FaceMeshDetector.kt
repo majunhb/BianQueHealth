@@ -2,6 +2,7 @@ package com.bianque.health.face.data
 
 import android.graphics.Bitmap
 import android.graphics.PointF
+import com.bianque.health.face.data.Rect
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import com.bianque.health.face.domain.model.FaceRegion
 import com.google.mlkit.vision.common.InputImage
