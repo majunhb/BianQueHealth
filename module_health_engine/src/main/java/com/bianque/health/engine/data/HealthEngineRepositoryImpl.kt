@@ -40,7 +40,7 @@ class HealthEngineRepositoryImpl @Inject constructor(
         // 步骤2：构建诊断摘要
         val diagnosisSummary = DiagnosisSummary(
             face = "面色${faceResult.overallComplexion}，光泽度${String.format("%.0f", faceResult.glossLevel * 100)}%",
-            tongue = "${tongueResult.tongueColor}舌，${tongueResult.coatingColor}苔，${tongueResult.coatingThickness}苔",
+            tongue = "${tongueResult.tongueColor}舌，${tongueResult.coatingColor}苔，${tongueResult.coatingThickness}苔，${tongueResult.tongueBody}质，${tongueResult.tongueShape}形",
             pulse = "脉率${pulseResult.pulseRate}次/分，${pulseResult.pulseType}",
             bloodPressure = "${bpResult.systolic}/${bpResult.diastolic} mmHg，心率${bpResult.heartRate} BPM"
         )

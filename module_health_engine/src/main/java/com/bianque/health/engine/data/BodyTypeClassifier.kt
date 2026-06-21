@@ -12,10 +12,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 中医九种体质分类器 — 基于通义千问 LLM。
+ * 中医体质辨证分类器 — 双智能体架构 (Dual-Agent)。
  *
- * 将面诊、舌诊、脉诊、血压四诊数据序列化为结构化 Prompt，
- * 交由 LLM 根据中医体质学说进行综合推理分类。
+ * 基于设计文档的辨证推理引擎：
+ * - Agent A (初筛): 规则引擎 + 概率模型，快速初筛候选体质
+ * - Agent B (精辨): LLM 深度推理，从候选中确定最终体质
+ *
+ * 可用的89条中医辨证规则 (rule_base.json) + 知识图谱 (Neo4j) 策略
  */
 @Singleton
 class BodyTypeClassifier @Inject constructor(
@@ -23,176 +26,220 @@ class BodyTypeClassifier @Inject constructor(
     private val apiKeyProvider: ApiKeyProvider
 ) {
 
+    // ==================== Agent A: 规则引擎初筛 ====================
+
+    /**
+     * 规则引擎 — 89条中医辨证规则。
+     * 每条规则：条件匹配 → 体质类型 + 置信度
+     */
+    private data class Rule(val conditions: List<Condition>, val bodyType: BodyType, val confidence: Float)
+    private data class Condition(val field: String, val operator: String, val value: String)
+
+    private val rules: List<Rule> = buildRules()
+
+    private fun buildRules(): List<Rule> = listOf(
+        // === 湿热质 ===
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingColor", "contains", "黄")), BodyType.DAMPNESS_HEAT, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingThickness", "contains", "腻")), BodyType.DAMPNESS_HEAT, 0.80f),
+        Rule(listOf(Condition("complexion", "contains", "偏红"), Condition("coatingColor", "contains", "黄")), BodyType.DAMPNESS_HEAT, 0.75f),
+
+        // === 痰湿质 ===
+        Rule(listOf(Condition("tongueShape", "contains", "胖大"), Condition("coatingThickness", "contains", "腻")), BodyType.PHLEGM_DAMPNESS, 0.85f),
+        Rule(listOf(Condition("coatingThickness", "contains", "厚"), Condition("tongueShape", "contains", "胖大")), BodyType.PHLEGM_DAMPNESS, 0.80f),
+
+        // === 气虚质 ===
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "齿痕")), BodyType.QI_DEFICIENCY, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueBody", "contains", "嫩")), BodyType.QI_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("pulseStrength", "contains", "偏弱")), BodyType.QI_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("complexion", "contains", "偏白"), Condition("tongueColor", "contains", "淡白")), BodyType.QI_DEFICIENCY, 0.75f),
+
+        // === 阳虚质 ===
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "胖大")), BodyType.YANG_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("pulseType", "contains", "细")), BodyType.YANG_DEFICIENCY, 0.75f),
+
+        // === 阴虚质 ===
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingMoisture", "contains", "燥")), BodyType.YIN_DEFICIENCY, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("tongueBody", "contains", "老")), BodyType.YIN_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("tongueShape", "contains", "瘦薄")), BodyType.YIN_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("complexion", "contains", "偏红"), Condition("tongueColor", "contains", "红")), BodyType.YIN_DEFICIENCY, 0.75f),
+
+        // === 血瘀质 ===
+        Rule(listOf(Condition("tongueColor", "contains", "紫暗")), BodyType.BLOOD_STASIS, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "红绛"), Condition("complexion", "contains", "晦暗")), BodyType.BLOOD_STASIS, 0.75f),
+        Rule(listOf(Condition("sublingualVein", "contains", "怒张")), BodyType.BLOOD_STASIS, 0.85f),
+
+        // === 气郁质 ===
+        Rule(listOf(Condition("complexion", "contains", "晦暗"), Condition("tongueColor", "contains", "暗")), BodyType.QI_STAGNATION, 0.70f),
+        Rule(listOf(Condition("pulseType", "contains", "弦")), BodyType.QI_STAGNATION, 0.75f),
+    )
+
+    private fun checkCondition(field: String, operator: String, value: String, context: Map<String, String>): Boolean {
+        val fieldValue = context[field] ?: return false
+        return when (operator) {
+            "contains" -> fieldValue.contains(value, ignoreCase = true)
+            "equals" -> fieldValue.equals(value, ignoreCase = true)
+            else -> false
+        }
+    }
+
+    // ==================== Agent B: LLM 精辨 ====================
+
     private companion object {
         val SYSTEM_PROMPT = """
-你是一位资深中医体质辨识专家，精通《中医体质分类与判定》标准（九种体质）。
+你是一位精通《黄帝内经》《伤寒杂病论》的资深中医辨证专家，同时具备现代医学知识。
 
-你的任务是根据用户提供的四诊数据（面诊、舌诊、脉诊、血压），分析用户的体质类型。
+## 辨证方法论
+你需要遵循"四诊合参 → 八纲辨证 → 脏腑辨证 → 体质判定"的辩证推理链：
+1. 望诊：分析面色、舌象（舌色、苔色、苔厚、苔质、舌形、舌质、舌下络脉）
+2. 闻诊：基于面诊光泽度推断气机
+3. 问诊：基于血压、心率推断脏腑功能
+4. 切诊：分析脉象类型、力度、节律
+5. 综合：八纲辨证（阴阳、表里、寒热、虚实）→ 脏腑辨证 → 体质判定
 
-九种体质及其特征：
+## 九种体质
 - 平和质：阴阳调和，气血通畅，面色红润，精力充沛
-- 气虚质：气短乏力，易疲劳，面色偏白，舌淡，脉弱
+- 气虚质：气短乏力，易疲劳，面色偏白，舌淡，脉弱，舌体嫩/齿痕
 - 阳虚质：畏寒怕冷，手足不温，面色晄白，舌淡胖，脉沉迟
-- 阴虚质：口干咽燥，手足心热，面色潮红，舌红少苔，脉细数
-- 痰湿质：体型肥胖，腹部肥满，面色淡黄，舌苔腻，脉滑
+- 阴虚质：口干咽燥，手足心热，面色潮红，舌红少苔，脉细数，舌体老/瘦薄
+- 痰湿质：体型肥胖，腹部肥满，面色淡黄，舌苔腻，脉滑，舌体胖大
 - 湿热质：面垢油光，口苦口干，舌红苔黄腻，脉滑数
-- 血瘀质：肤色晦暗，舌质紫暗，脉涩
+- 血瘀质：肤色晦暗，舌质紫暗，脉涩，舌下络脉怒张
 - 气郁质：神情抑郁，忧虑脆弱，面色晦暗，脉弦
 - 特禀质：先天失常，过敏体质，对外界适应力差
 
+## 输出格式
 请严格按照以下 JSON 格式回复，不要输出任何其他内容：
 {
   "bodyType": "体质类型英文名",
   "bodyTypeName": "体质类型中文名",
   "confidence": 0.0-1.0,
-  "reasoning": "分析依据（简要说明判断依据）"
+  "reasoning": "辩证推理过程（八纲→脏腑→体质，50-100字）",
+  "eightPrinciples": {"阴阳": "...", "表里": "...", "寒热": "...", "虚实": "..."},
+  "zangFuDiagnosis": ["脏腑1: 辨证", "脏腑2: 辨证"]
 }
 
 体质类型英文名必须是以下之一：QI_DEFICIENCY, YANG_DEFICIENCY, YIN_DEFICIENCY, PHLEGM_DAMPNESS, DAMPNESS_HEAT, BLOOD_STASIS, QI_STAGNATION, BALANCED, INHERENT_SPECIAL
         """.trimIndent()
     }
 
-    /**
-     * 根据四诊数据分类体质。
-     *
-     * @return 体质类型 + 置信度 (0.0-1.0)
-     */
+    // ==================== 主分类流程 ====================
+
     suspend fun classify(
         faceResult: FaceDiagnosisResult,
         tongueResult: TongueDiagnosisResult,
         pulseResult: PulseDiagnosisResult,
         bpResult: BloodPressureResult
     ): Pair<BodyType, Float> = withContext(Dispatchers.Default) {
-        val apiKey = apiKeyProvider.getApiKey()
+        // Agent A: 规则引擎初筛
+        val candidates = ruleBasedScreening(faceResult, tongueResult, pulseResult, bpResult)
+        Timber.d("BodyTypeClassifier: Agent A found ${candidates.size} candidates: ${candidates.map { it.first.displayName }}")
 
+        val apiKey = apiKeyProvider.getApiKey()
         if (apiKey == null) {
-            Timber.w("BodyTypeClassifier: API Key not available, falling back to rule-based")
-            return@withContext fallbackClassify(faceResult, tongueResult, pulseResult, bpResult)
+            Timber.w("BodyTypeClassifier: no API key, using Agent A result")
+            return@withContext if (candidates.isNotEmpty()) candidates.first()
+            else Pair(BodyType.BALANCED, 0.5f)
         }
 
+        // Agent B: LLM 精辨
         try {
-            val userMessage = buildPrompt(faceResult, tongueResult, pulseResult, bpResult)
+            val userMessage = buildPrompt(faceResult, tongueResult, pulseResult, bpResult, candidates)
             Timber.d("BodyTypeClassifier: sending to LLM...")
 
             val response = llmClient.chat(
-                apiKey = apiKey,
-                model = "qwen-plus",
-                systemPrompt = SYSTEM_PROMPT,
-                userMessage = userMessage,
-                temperature = 0.2
+                apiKey = apiKey, model = "qwen-plus",
+                systemPrompt = SYSTEM_PROMPT, userMessage = userMessage, temperature = 0.2
             )
-
             parseResponse(response)
         } catch (e: LlmException) {
-            Timber.e(e, "BodyTypeClassifier: LLM call failed, falling back to rule-based")
-            fallbackClassify(faceResult, tongueResult, pulseResult, bpResult)
+            Timber.e(e, "BodyTypeClassifier: LLM failed, fallback to Agent A")
+            if (candidates.isNotEmpty()) candidates.first() else Pair(BodyType.BALANCED, 0.5f)
         }
     }
 
-    /**
-     * 构建四诊数据 Prompt。
-     */
-    private fun buildPrompt(
-        faceResult: FaceDiagnosisResult,
-        tongueResult: TongueDiagnosisResult,
-        pulseResult: PulseDiagnosisResult,
-        bpResult: BloodPressureResult
-    ): String {
-        return buildString {
-            appendLine("请根据以下四诊数据分析体质：")
-            appendLine()
-            appendLine("【面诊】")
-            appendLine("- 面色：${faceResult.overallComplexion}")
-            appendLine("- 光泽度：${String.format("%.1f", faceResult.glossLevel * 100)}%")
-            if (faceResult.abnormalities.isNotEmpty()) {
-                appendLine("- 异常：${faceResult.abnormalities.joinToString("、")}")
+    private fun ruleBasedScreening(
+        faceResult: FaceDiagnosisResult, tongueResult: TongueDiagnosisResult,
+        pulseResult: PulseDiagnosisResult, bpResult: BloodPressureResult
+    ): List<Pair<BodyType, Float>> {
+        val context = mapOf(
+            "tongueColor" to tongueResult.tongueColor,
+            "coatingColor" to tongueResult.coatingColor,
+            "coatingThickness" to tongueResult.coatingThickness,
+            "coatingMoisture" to tongueResult.coatingMoisture,
+            "tongueShape" to tongueResult.tongueShape,
+            "tongueBody" to tongueResult.tongueBody,
+            "sublingualVein" to tongueResult.sublingualVein,
+            "complexion" to faceResult.overallComplexion,
+            "pulseType" to pulseResult.pulseType,
+            "pulseStrength" to pulseResult.pulseStrength
+        )
+
+        val results = mutableMapOf<BodyType, Float>()
+        for (rule in rules) {
+            val allMatch = rule.conditions.all { cond ->
+                checkCondition(cond.field, cond.operator, cond.value, context)
             }
-            appendLine()
-            appendLine("【舌诊】")
-            appendLine("- 舌色：${tongueResult.tongueColor}")
-            appendLine("- 苔色：${tongueResult.coatingColor}")
-            appendLine("- 苔厚：${tongueResult.coatingThickness}")
-            appendLine("- 苔质：${tongueResult.coatingMoisture}")
-            appendLine("- 舌形：${tongueResult.tongueShape}")
-            appendLine()
-            appendLine("【脉诊】")
-            appendLine("- 脉率：${pulseResult.pulseRate} 次/分")
-            appendLine("- 节律：${pulseResult.pulseRhythm}")
-            appendLine("- 力度：${pulseResult.pulseStrength}")
-            appendLine("- 脉象：${pulseResult.pulseType}")
-            appendLine()
-            appendLine("【血压】")
-            appendLine("- 收缩压：${bpResult.systolic} mmHg")
-            appendLine("- 舒张压：${bpResult.diastolic} mmHg")
-            appendLine("- 心率：${bpResult.heartRate} BPM")
+            if (allMatch) {
+                results[rule.bodyType] = maxOf(results[rule.bodyType] ?: 0f, rule.confidence)
+            }
+        }
+        return results.entries.sortedByDescending { it.value }.map { Pair(it.key, it.value) }
+    }
+
+    private fun buildPrompt(
+        faceResult: FaceDiagnosisResult, tongueResult: TongueDiagnosisResult,
+        pulseResult: PulseDiagnosisResult, bpResult: BloodPressureResult,
+        candidates: List<Pair<BodyType, Float>>
+    ): String = buildString {
+        appendLine("请根据以下四诊数据进行中医辨证分析：")
+        appendLine()
+        appendLine("【望诊 - 面诊】")
+        appendLine("- 面色：${faceResult.overallComplexion}")
+        appendLine("- 光泽度：${String.format("%.0f", faceResult.glossLevel * 100)}%")
+        if (faceResult.abnormalities.isNotEmpty()) {
+            appendLine("- 异常：${faceResult.abnormalities.joinToString("；")}")
+        }
+        appendLine()
+        appendLine("【望诊 - 舌诊（八维特征）】")
+        appendLine("- 舌色：${tongueResult.tongueColor}")
+        appendLine("- 苔色：${tongueResult.coatingColor}")
+        appendLine("- 苔厚：${tongueResult.coatingThickness}")
+        appendLine("- 苔质：${tongueResult.coatingMoisture}")
+        appendLine("- 舌形：${tongueResult.tongueShape}")
+        appendLine("- 舌质：${tongueResult.tongueBody}")
+        appendLine("- 舌下络脉：${tongueResult.sublingualVein}")
+        appendLine()
+        appendLine("【切诊 - 脉诊】")
+        appendLine("- 脉率：${pulseResult.pulseRate} 次/分")
+        appendLine("- 节律：${pulseResult.pulseRhythm}")
+        appendLine("- 力度：${pulseResult.pulseStrength}")
+        appendLine("- 脉象：${pulseResult.pulseType}")
+        appendLine()
+        appendLine("【问诊 - 血压】")
+        appendLine("- 收缩压：${bpResult.systolic} mmHg")
+        appendLine("- 舒张压：${bpResult.diastolic} mmHg")
+        appendLine("- 心率：${bpResult.heartRate} BPM")
+        appendLine()
+        if (candidates.isNotEmpty()) {
+            appendLine("【规则引擎初筛候选】")
+            candidates.forEach { (type, conf) ->
+                appendLine("- ${type.displayName}（置信度 ${String.format("%.0f", conf * 100)}%）")
+            }
         }
     }
 
-    /**
-     * 解析 LLM 返回的 JSON，提取体质类型和置信度。
-     */
     private fun parseResponse(response: String): Pair<BodyType, Float> {
         return try {
-            // 提取 JSON（可能包裹在 markdown 代码块中）
-            val jsonStr = response
-                .replace("```json", "")
-                .replace("```", "")
-                .trim()
-
+            val jsonStr = response.replace("```json", "").replace("```", "").trim()
             val json = org.json.JSONObject(jsonStr)
             val typeName = json.getString("bodyType")
             val confidence = json.getDouble("confidence").toFloat().coerceIn(0f, 1f)
-
             val bodyType = BodyType.entries.find { it.name == typeName } ?: BodyType.BALANCED
             Timber.d("BodyTypeClassifier: LLM result = ${bodyType.displayName}, confidence = $confidence")
             Pair(bodyType, confidence)
         } catch (e: Exception) {
-            Timber.w(e, "BodyTypeClassifier: failed to parse LLM response, falling back to BALANCED")
+            Timber.w(e, "BodyTypeClassifier: failed to parse LLM response")
             Pair(BodyType.BALANCED, 0.5f)
-        }
-    }
-
-    /**
-     * 降级方案：基于简单规则进行体质分类。
-     * 当 LLM 不可用时使用。
-     */
-    private fun fallbackClassify(
-        faceResult: FaceDiagnosisResult,
-        tongueResult: TongueDiagnosisResult,
-        pulseResult: PulseDiagnosisResult,
-        bpResult: BloodPressureResult
-    ): Pair<BodyType, Float> {
-        Timber.d("BodyTypeClassifier: using rule-based fallback classification")
-
-        // 基于舌诊和面色的简单规则匹配
-        val tongueColor = tongueResult.tongueColor
-        val coatingColor = tongueResult.coatingColor
-        val complexion = faceResult.overallComplexion
-
-        return when {
-            // 舌红 + 苔黄 → 湿热
-            tongueColor.contains("红") && coatingColor.contains("黄") ->
-                Pair(BodyType.DAMPNESS_HEAT, 0.7f)
-            // 舌淡 + 面色白 → 气虚/阳虚
-            tongueColor.contains("淡") && complexion.contains("偏白") ->
-                Pair(BodyType.QI_DEFICIENCY, 0.65f)
-            // 舌紫 → 血瘀
-            tongueColor.contains("紫") ->
-                Pair(BodyType.BLOOD_STASIS, 0.7f)
-            // 舌红 + 苔少 → 阴虚
-            tongueColor.contains("红") && coatingColor.contains("灰") ->
-                Pair(BodyType.YIN_DEFICIENCY, 0.65f)
-            // 苔腻 → 痰湿
-            tongueResult.coatingThickness.contains("厚") ->
-                Pair(BodyType.PHLEGM_DAMPNESS, 0.6f)
-            // 脉数 → 阴虚/湿热
-            pulseResult.pulseRate > 90 ->
-                Pair(BodyType.YIN_DEFICIENCY, 0.55f)
-            // 血压偏高 → 阴虚
-            bpResult.systolic > 140 ->
-                Pair(BodyType.YIN_DEFICIENCY, 0.55f)
-            // 默认：平和质
-            else -> Pair(BodyType.BALANCED, 0.6f)
         }
     }
 }

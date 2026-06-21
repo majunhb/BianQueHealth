@@ -155,6 +155,9 @@ private fun TongueDiagnosisResultCard(result: TongueDiagnosisResult) {
             DiagnosisLabel(label = stringResource(R.string.label_coating_thickness), value = result.coatingThickness)
             DiagnosisLabel(label = stringResource(R.string.label_coating_moisture), value = result.coatingMoisture)
             DiagnosisLabel(label = stringResource(R.string.label_tongue_shape), value = result.tongueShape)
+            DiagnosisLabel(label = stringResource(R.string.label_tongue_body), value = result.tongueBody)
+            DiagnosisLabel(label = stringResource(R.string.label_sublingual_vein), value = result.sublingualVein)
+            DiagnosisLabel(label = stringResource(R.string.label_tongue_mobility), value = result.tongueMobility)
             DiagnosisLabel(label = stringResource(R.string.label_confidence), value = "${(result.confidence * 100).toInt()}%")
             Spacer(modifier = Modifier.height(12.dp))
             Text(stringResource(R.string.tcm_interpretation), style = MaterialTheme.typography.titleLarge, color = Warm40, fontWeight = FontWeight.SemiBold)
@@ -196,11 +199,20 @@ private fun interpretTongue(result: TongueDiagnosisResult): String {
         "白" -> sb.append("白苔属表证、寒证。")
         "黄" -> sb.append("黄苔属里证、热证。")
         "灰" -> sb.append("灰苔多见于里热证或寒湿证。")
+        "黑" -> sb.append("黑苔主里证，或为热极，或为寒极。")
         "黄白" -> sb.append("黄白相兼苔，表邪入里化热。")
     }
     when (result.coatingThickness) {
         "厚" -> sb.append("苔厚提示邪气较盛，病位较深。")
         "薄" -> sb.append("苔薄为正常或病邪轻浅。")
+        "腻" -> sb.append("腻苔提示痰湿内蕴。")
+    }
+    when (result.tongueBody) {
+        "老" -> sb.append("舌质苍老，属实证。")
+        "嫩" -> sb.append("舌质娇嫩，属虚证。")
+    }
+    when (result.sublingualVein) {
+        "怒张" -> sb.append("舌下络脉怒张，提示血瘀。")
     }
     if (sb.isEmpty()) sb.append("舌象基本正常，请保持良好生活习惯。")
     return sb.toString()

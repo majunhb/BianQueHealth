@@ -60,6 +60,9 @@
     <string name="label_coating_thickness">苔厚</string>
     <string name="label_coating_moisture">苔质</string>
     <string name="label_tongue_shape">舌形</string>
+    <string name="label_tongue_body">舌质</string>
+    <string name="label_sublingual_vein">舌下络脉</string>
+    <string name="label_tongue_mobility">舌态</string>
     <string name="label_pulse_type">脉象</string>
     <string name="label_pulse_strength">力度</string>
     <string name="label_tips">提示</string>
