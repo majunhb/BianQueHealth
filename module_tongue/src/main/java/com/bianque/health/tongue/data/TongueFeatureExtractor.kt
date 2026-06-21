@@ -291,6 +291,7 @@ class TongueFeatureExtractor @Inject constructor() {
         val width = bitmap.width
         val height = bitmap.height
         val step = 4
+        val hsvArray = FloatArray(3)
 
         var totalPixels = 0
         var darkVeinPixels = 0
@@ -304,7 +305,7 @@ class TongueFeatureExtractor @Inject constructor() {
                 totalPixels++
 
                 Color.colorToHSV(pixel, hsvArray)
-                val (h, s, v) = Triple(hsvArray[0], hsvArray[1], hsvArray[2])
+                val h = hsvArray[0]; val s = hsvArray[1]; val v = hsvArray[2]
 
                 // 暗紫色/蓝紫色/深色区域 → 络脉
                 val isVeinPixel = (v < 0.35f && s > 0.15f) ||
@@ -336,6 +337,7 @@ class TongueFeatureExtractor @Inject constructor() {
         val width = bitmap.width
         val height = bitmap.height
         val step = 4
+        val hsvArray = FloatArray(3)
 
         // 计算舌体像素的左右分布
         var leftPixels = 0
