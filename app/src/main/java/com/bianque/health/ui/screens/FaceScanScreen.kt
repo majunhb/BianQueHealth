@@ -1,6 +1,7 @@
 package com.bianque.health.ui.screens
 
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.media.MediaActionSound
 import android.speech.tts.TextToSpeech
 import androidx.camera.core.CameraSelector
@@ -43,6 +44,7 @@ import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
 import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.math.max
 
 private val OutlineBlue = Color(0xFF007AFF)
 private val OutlineGray = Color(0xFFCCCCCC)
@@ -86,14 +88,14 @@ fun FaceScanScreen(
         }
     }
 
-    // 自动抓拍：当连续处于READY状态1秒后自动触发
+    // 自动抓拍：当连续处于READY状态0.8秒后自动触发
     LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
         if (uiState.detectionState == DetectionState.READY
             && !uiState.isScanning
             && !uiState.isAnalyzing
             && uiState.diagnosisResult == null
         ) {
-            delay(800) // 稳定0.8秒后自动抓拍
+            delay(800)
             val bitmap = capturedBitmap
             if (bitmap != null) {
                 shutterSound.play(MediaActionSound.SHUTTER_CLICK)
@@ -154,8 +156,13 @@ fun FaceScanScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // 人脸轮廓遮罩层
-                    FaceOutlineOverlay(detectionState = uiState.detectionState)
+                    // 人脸轮廓遮罩层（动态跟随人脸位置）
+                    FaceOutlineOverlay(
+                        detectionState = uiState.detectionState,
+                        faceRect = uiState.faceRect,
+                        imageWidth = uiState.imageWidth,
+                        imageHeight = uiState.imageHeight
+                    )
 
                     // 扫描光效动画
                     if (uiState.isScanning) {
@@ -208,7 +215,7 @@ fun FaceScanScreen(
                 }
             }
 
-            // 底部按钮（仅重试时需要）
+            // 底部按钮
             Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                 if (uiState.diagnosisResult != null) {
                     Button(
@@ -226,10 +233,20 @@ fun FaceScanScreen(
 }
 
 /**
- * 人脸轮廓遮罩 — 简洁椭圆形，模拟人体面部比例。
+ * 人脸轮廓遮罩 — 动态椭圆，跟随 ML Kit 实时检测的人脸位置。
+ *
+ * 对标 YouCam / SkinVision / VIDA 的做法：
+ * - 检测到人脸时，引导框跟随人脸实际位置
+ * - 未检测到时，引导框居中显示并脉冲动画
+ * - 颜色根据检测状态变化：灰（未检测到）→ 黄（质量不佳）→ 绿（就绪）
  */
 @Composable
-private fun FaceOutlineOverlay(detectionState: DetectionState) {
+private fun FaceOutlineOverlay(
+    detectionState: DetectionState,
+    faceRect: Rect?,
+    imageWidth: Int,
+    imageHeight: Int
+) {
     val outlineColor = when (detectionState) {
         DetectionState.NOT_DETECTED -> OutlineGray
         DetectionState.POOR_QUALITY -> OutlineYellow
@@ -249,13 +266,51 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        val ovalWidth = canvasWidth * 0.52f
-        val ovalHeight = canvasHeight * 0.62f
+        // 计算引导框位置：如果检测到人脸，跟随人脸；否则居中
+        val ovalCenterX: Float
+        val ovalCenterY: Float
+        val ovalWidth: Float
+        val ovalHeight: Float
+
+        if (faceRect != null && imageWidth > 0 && imageHeight > 0) {
+            // 将人脸边界框从图像坐标映射到屏幕坐标
+            // FILL_CENTER 缩放：等比缩放填满，居中裁剪
+            val scaleX = canvasWidth / imageWidth.toFloat()
+            val scaleY = canvasHeight / imageHeight.toFloat()
+            val scale = max(scaleX, scaleY)
+
+            val displayWidth = imageWidth * scale
+            val displayHeight = imageHeight * scale
+            val offsetX = (canvasWidth - displayWidth) / 2f
+            val offsetY = (canvasHeight - displayHeight) / 2f
+
+            // 人脸中心在图像坐标中的位置
+            val faceCenterImageX = faceRect.centerX().toFloat()
+            val faceCenterImageY = faceRect.centerY().toFloat()
+
+            // 映射到屏幕坐标（前置摄像头需水平镜像）
+            val screenX = canvasWidth - (faceCenterImageX * scale + offsetX)
+            val screenY = faceCenterImageY * scale + offsetY
+
+            ovalCenterX = screenX
+            ovalCenterY = screenY
+            // 引导框大小 = 人脸边界框映射到屏幕的 1.3 倍
+            ovalWidth = faceRect.width() * scale * 1.3f
+            ovalHeight = faceRect.height() * scale * 1.3f
+        } else {
+            // 未检测到人脸：居中显示默认椭圆
+            ovalCenterX = canvasWidth / 2f
+            ovalCenterY = canvasHeight / 2f
+            ovalWidth = canvasWidth * 0.52f
+            ovalHeight = canvasHeight * 0.62f
+        }
+
         val topLeft = Offset(
-            (canvasWidth - ovalWidth) / 2f,
-            (canvasHeight - ovalHeight) / 2f
+            ovalCenterX - ovalWidth / 2f,
+            ovalCenterY - ovalHeight / 2f
         )
 
+        // 外层椭圆
         drawOval(
             color = outlineColor.copy(alpha = currentAlpha),
             topLeft = topLeft,
@@ -263,6 +318,7 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
             style = Stroke(width = 4f)
         )
 
+        // 内层椭圆（缩进）
         val inset = 10f
         drawOval(
             color = outlineColor.copy(alpha = currentAlpha * 0.4f),

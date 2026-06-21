@@ -1,14 +1,15 @@
 package com.bianque.health.ui.screens
 
 import android.graphics.Bitmap
+import android.graphics.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bianque.health.base.analysis.ImageQualityAnalyzer
 import com.bianque.health.base.analysis.ImageQualityAnalyzer.DetectionState
 import com.bianque.health.base.data.local.HealthDao
 import com.bianque.health.base.data.local.HealthRecordEntity
 import com.bianque.health.engine.data.DiagnosisCache
 import com.bianque.health.face.data.FaceMeshDetector
+import com.bianque.health.face.data.FacePreviewAnalyzer
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -27,16 +28,22 @@ import javax.inject.Inject
 data class FaceScanUiState(
     val isAnalyzing: Boolean = false,
     val isScanning: Boolean = false,
-    val detectionState: ImageQualityAnalyzer.DetectionState = ImageQualityAnalyzer.DetectionState.NOT_DETECTED,
+    val detectionState: DetectionState = DetectionState.NOT_DETECTED,
     val qualityScore: Float = 0f,
     val statusMessage: String? = "请将面部置于框内，保持正脸",
     val diagnosisResult: FaceDiagnosisResult? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    // 实时面部预览数据（用于动态引导框）
+    val faceFound: Boolean = false,
+    val faceRect: Rect? = null,
+    val imageWidth: Int = 0,
+    val imageHeight: Int = 0
 )
 
 @HiltViewModel
 class FaceScanViewModel @Inject constructor(
     private val faceMeshDetector: FaceMeshDetector,
+    private val facePreviewAnalyzer: FacePreviewAnalyzer,
     private val diagnosisCache: DiagnosisCache,
     private val healthDao: HealthDao
 ) : ViewModel() {
@@ -45,31 +52,30 @@ class FaceScanViewModel @Inject constructor(
     val uiState: StateFlow<FaceScanUiState> = _uiState.asStateFlow()
 
     private var lastFrameAnalysisTime = 0L
-    private val frameAnalysisIntervalMs = 400L
-    private var captureCooldownUntil = 0L  // 冷却期：失败后3秒内不报告READY
+    private val frameAnalysisIntervalMs = 300L
+    private var captureCooldownUntil = 0L
 
     fun analyzeFrame(bitmap: Bitmap) {
         val now = System.currentTimeMillis()
         if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
         lastFrameAnalysisTime = now
 
-        // 冷却期内跳过分析，避免连拍循环
         if (now < captureCooldownUntil) return
 
         viewModelScope.launch {
             try {
-                val quality = withContext(Dispatchers.Default) {
-                    ImageQualityAnalyzer.analyzeFacePresence(bitmap)
-                }
+                val result = withContext(Dispatchers.Default) {
+                    facePreviewAnalyzer.analyze(bitmap)
+                } ?: return@launch // 节流跳过
 
                 _uiState.value = _uiState.value.copy(
-                    detectionState = quality.detectionState,
-                    qualityScore = quality.score,
-                    statusMessage = when (quality.detectionState) {
-                        DetectionState.READY -> "定位成功，正在自动检测…"
-                        DetectionState.POOR_QUALITY -> "正在定位，请保持面部正对镜头"
-                        else -> "请将面部置于框内，保持正脸"
-                    }
+                    detectionState = result.detectionState,
+                    qualityScore = result.faceSizeRatio,
+                    statusMessage = result.guidanceMessage,
+                    faceFound = result.faceFound,
+                    faceRect = result.boundingBox,
+                    imageWidth = result.imageWidth,
+                    imageHeight = result.imageHeight
                 )
             } catch (e: Exception) {
                 Timber.w(e, "FaceScanViewModel: frame analysis failed")
@@ -89,17 +95,15 @@ class FaceScanViewModel @Inject constructor(
                     faceMeshDetector.detect(bitmap)
                 }
                 if (preCheck.overallComplexion == "未检测到面部") {
-                    // ML Kit未检测到人脸 → 进入3秒冷却期，防止连拍
                     captureCooldownUntil = System.currentTimeMillis() + 3000
                     _uiState.value = _uiState.value.copy(
                         isScanning = false,
                         detectionState = DetectionState.POOR_QUALITY,
-                        statusMessage = "正在定位，请保持面部正对镜头"
+                        statusMessage = "未识别到面部，请正对摄像头并保持光线充足"
                     )
                     return@launch
                 }
 
-                // 扫描动画持续 2 秒
                 delay(2000)
                 _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
 
@@ -113,7 +117,7 @@ class FaceScanViewModel @Inject constructor(
                     isScanning = false,
                     isAnalyzing = false,
                     detectionState = DetectionState.POOR_QUALITY,
-                    statusMessage = "正在定位，请保持面部正对镜头"
+                    statusMessage = "检测异常，请重试"
                 )
             }
         }
