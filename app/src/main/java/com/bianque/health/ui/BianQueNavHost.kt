@@ -7,7 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.bianque.health.ui.screens.BloodPressureScreen
 import com.bianque.health.ui.screens.FaceScanScreen
 import com.bianque.health.ui.screens.HealthReportScreen
-import com.bianque.health.ui.screens.PulseDiagnosisScreen
+import com.bianque.health.ui.screens.PulseScanScreen
 import com.bianque.health.ui.screens.TongueScanScreen
 
 @Composable
@@ -33,7 +33,7 @@ fun BianQueNavHost() {
             BloodPressureScreen(onBack = { navController.popBackStack() })
         }
         composable("pulse") {
-            PulseDiagnosisScreen(onBack = { navController.popBackStack() })
+            PulseScanScreen(onBack = { navController.popBackStack() })
         }
         composable("report") {
             HealthReportScreen(onBack = { navController.popBackStack() })

@@ -21,7 +21,7 @@
     <string name="module_bp">血压</string>
     <string name="module_bp_desc">实时血压监测与趋势分析</string>
     <string name="module_pulse">脉诊</string>
-    <string name="module_pulse_desc">脉象采集与智能分析</string>
+    <string name="module_pulse_desc">非接触式脉搏与血压监测</string>
     <string name="module_report">健康报告</string>
     <string name="module_report_desc">综合体质评估与健康建议</string>
 

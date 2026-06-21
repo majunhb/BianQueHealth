@@ -6,4 +6,7 @@ import dagger.hilt.components.SingletonComponent
 
 @Module
 @InstallIn(SingletonComponent::class)
-object PulseModule
+object PulseModule {
+    // PulseSignalProcessor, PulseClassifier, RppGather, RppGProcessor, BloodPressureEstimator
+    // are all @Singleton @Inject or object, no explicit binding needed.
+}
