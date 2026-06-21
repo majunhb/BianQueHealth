@@ -62,11 +62,11 @@ fun TongueScanScreen(
     val context = LocalContext.current
 
     // 语音播报
-    val tts = remember { TextToSpeech(context) { status ->
-        if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.CHINESE
+    val tts = remember {
+        TextToSpeech(context, null).apply {
+            language = Locale.CHINESE
         }
-    } }
+    }
     var lastSpokenMsg by remember { mutableStateOf("") }
     LaunchedEffect(uiState.statusMessage) {
         val msg = uiState.statusMessage ?: ""
