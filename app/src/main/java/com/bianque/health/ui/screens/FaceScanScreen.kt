@@ -224,13 +224,11 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
         val faceHeight = canvasHeight * 0.62f
         val centerX = canvasWidth / 2f
         val topY = (canvasHeight - faceHeight) / 2f
+        val chinWidth = faceWidth * 0.5f  // 下巴宽度约为额头的50%
+        val chinY = topY + faceHeight
 
         // 构建人脸轮廓路径：上方圆角 → 两侧微收 → 下巴收窄
         val path = Path().apply {
-            val topLeft = Offset(centerX - faceWidth / 2f, topY)
-            val topRight = Offset(centerX + faceWidth / 2f, topY)
-            val chinY = topY + faceHeight
-            val chinWidth = faceWidth * 0.5f  // 下巴宽度约为额头的50%
             val cheekNarrowY = topY + faceHeight * 0.55f  // 颧骨下方开始收窄
             val jawStartY = topY + faceHeight * 0.72f  // 下颌线开始
 
