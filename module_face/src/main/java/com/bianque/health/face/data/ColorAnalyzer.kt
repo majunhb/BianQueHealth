@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,6 +27,10 @@ class ColorAnalyzer @Inject constructor() {
         val clampedRight = region.right.coerceIn(1, bitmap.width)
         val clampedBottom = region.bottom.coerceIn(1, bitmap.height)
 
+        if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) {
+            return@withContext LabColor(50f, 0f, 0f)
+        }
+
         var sumL = 0f
         var sumA = 0f
         var sumB = 0f
@@ -45,22 +50,27 @@ class ColorAnalyzer @Inject constructor() {
         }
 
         if (count == 0) return@withContext LabColor(50f, 0f, 0f)
-        LabColor(sumL / count, sumA / count, sumB / count)
+        val result = LabColor(sumL / count, sumA / count, sumB / count)
+        Timber.d("ColorAnalyzer: region L=%.1f a=%.1f b=%.1f", result.l, result.a, result.b)
+        result
     }
 
     /**
      * 根据 CIELAB 值分类面色
-     * 中医面诊参考:
-     *   - b* > 8: 偏黄（脾虚/湿盛）
-     *   - a* > 6: 偏红（热证）
-     *   - L* > 75: 偏白（血虚/气虚）
-     *   - L* < 25: 偏黑/晦暗（肾虚/血瘀）
+     * 改进：基于真实皮肤Lab色度范围，避免"偏黄"误判
+     *
+     * 参考值（中国成人面部）:
+     *   - 正常: L* 50-72, a* 5-18, b* 10-22
+     *   - 偏黄: b* > 25 且 L* 正常
+     *   - 偏红: a* > 20 且 b* < 18
+     *   - 偏白: L* > 72 且 a* < 8
+     *   - 晦暗: L* < 38
      */
     fun classifyComplexion(lab: LabColor): String = when {
-        lab.b > 8 -> "偏黄"
-        lab.a > 6 -> "偏红"
-        lab.l > 75 -> "偏白"
-        lab.l < 25 -> "晦暗"
+        lab.l < 38 -> "晦暗"       // 极暗 → 肾虚/血瘀
+        lab.b > 25 && lab.l > 45 -> "偏黄"  // b*明显高于正常 → 脾虚/湿盛
+        lab.a > 20 && lab.b < 18 -> "偏红"  // a*偏高b*不高 → 热证
+        lab.l > 72 && lab.a < 8 -> "偏白"   // 亮白低红 → 血虚/气虚
         else -> "正常"
     }
 
@@ -72,6 +82,10 @@ class ColorAnalyzer @Inject constructor() {
         val clampedTop = region.top.coerceIn(0, bitmap.height - 1)
         val clampedRight = region.right.coerceIn(1, bitmap.width)
         val clampedBottom = region.bottom.coerceIn(1, bitmap.height)
+
+        if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) {
+            return@withContext 0.5f
+        }
 
         val lValues = mutableListOf<Float>()
         val step = 4

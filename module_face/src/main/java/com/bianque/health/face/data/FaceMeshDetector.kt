@@ -1,7 +1,6 @@
 package com.bianque.health.face.data
 
 import android.graphics.Bitmap
-import android.graphics.PointF
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import com.bianque.health.face.domain.model.FaceRegion
 import com.google.mlkit.vision.common.InputImage
@@ -24,8 +23,8 @@ class FaceMeshDetector @Inject constructor(
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(0.1f)
-            .enableTracking()
+            .setMinFaceSize(0.15f)
+            // ★ 移除enableTracking() — 某些设备上tracking模式导致检测不到面部
             .build()
     )
 
@@ -73,10 +72,13 @@ class FaceMeshDetector @Inject constructor(
         val regions = mutableListOf<FaceRegion>()
         val bounds = face.boundingBox
 
+        // ★ 所有矩形坐标必须clamp到bitmap范围内，防止越界
         // 额头区域 (bounding box 上部 1/3)
-        val foreheadRect = Rect(
-            bounds.left, bounds.top,
-            bounds.right, bounds.top + bounds.height() / 3
+        val foreheadRect = ColorAnalyzer.Rect(
+            bounds.left.coerceIn(0, bitmap.width - 1),
+            bounds.top.coerceIn(0, bitmap.height - 1),
+            bounds.right.coerceIn(1, bitmap.width),
+            (bounds.top + bounds.height() / 3).coerceIn(1, bitmap.height)
         )
         val foreheadLab = colorAnalyzer.analyzeRegion(bitmap, foreheadRect)
         regions.add(FaceRegion(
@@ -88,9 +90,11 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 左脸颊 (bounding box 左侧 1/3，中部)
-        val leftCheekRect = Rect(
-            bounds.left, bounds.top + bounds.height() / 3,
-            bounds.left + bounds.width() / 3, bounds.bottom - bounds.height() / 4
+        val leftCheekRect = ColorAnalyzer.Rect(
+            bounds.left.coerceIn(0, bitmap.width - 1),
+            (bounds.top + bounds.height() / 3).coerceIn(0, bitmap.height - 1),
+            (bounds.left + bounds.width() / 3).coerceIn(1, bitmap.width),
+            (bounds.bottom - bounds.height() / 4).coerceIn(1, bitmap.height)
         )
         val leftCheekLab = colorAnalyzer.analyzeRegion(bitmap, leftCheekRect)
         regions.add(FaceRegion(
@@ -102,9 +106,11 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 右脸颊 (bounding box 右侧 1/3，中部)
-        val rightCheekRect = Rect(
-            bounds.right - bounds.width() / 3, bounds.top + bounds.height() / 3,
-            bounds.right, bounds.bottom - bounds.height() / 4
+        val rightCheekRect = ColorAnalyzer.Rect(
+            (bounds.right - bounds.width() / 3).coerceIn(0, bitmap.width - 1),
+            (bounds.top + bounds.height() / 3).coerceIn(0, bitmap.height - 1),
+            bounds.right.coerceIn(1, bitmap.width),
+            (bounds.bottom - bounds.height() / 4).coerceIn(1, bitmap.height)
         )
         val rightCheekLab = colorAnalyzer.analyzeRegion(bitmap, rightCheekRect)
         regions.add(FaceRegion(
@@ -116,9 +122,11 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 鼻梁区域 (面部中心)
-        val noseRect = Rect(
-            bounds.left + bounds.width() / 3, bounds.top + bounds.height() / 3,
-            bounds.right - bounds.width() / 3, bounds.top + bounds.height() * 2 / 3
+        val noseRect = ColorAnalyzer.Rect(
+            (bounds.left + bounds.width() / 3).coerceIn(0, bitmap.width - 1),
+            (bounds.top + bounds.height() / 3).coerceIn(0, bitmap.height - 1),
+            (bounds.right - bounds.width() / 3).coerceIn(1, bitmap.width),
+            (bounds.top + bounds.height() * 2 / 3).coerceIn(1, bitmap.height)
         )
         val noseLab = colorAnalyzer.analyzeRegion(bitmap, noseRect)
         regions.add(FaceRegion(
@@ -130,9 +138,11 @@ class FaceMeshDetector @Inject constructor(
         ))
 
         // 下巴区域
-        val chinRect = Rect(
-            bounds.left + bounds.width() / 4, bounds.bottom - bounds.height() / 4,
-            bounds.right - bounds.width() / 4, bounds.bottom
+        val chinRect = ColorAnalyzer.Rect(
+            (bounds.left + bounds.width() / 4).coerceIn(0, bitmap.width - 1),
+            (bounds.bottom - bounds.height() / 4).coerceIn(0, bitmap.height - 1),
+            (bounds.right - bounds.width() / 4).coerceIn(1, bitmap.width),
+            bounds.bottom.coerceIn(1, bitmap.height)
         )
         val chinLab = colorAnalyzer.analyzeRegion(bitmap, chinRect)
         regions.add(FaceRegion(
@@ -154,9 +164,11 @@ class FaceMeshDetector @Inject constructor(
 
     private suspend fun computeOverallGloss(bitmap: Bitmap, face: Face): Float {
         val bounds = face.boundingBox
-        val foreheadRect = Rect(
-            bounds.left, bounds.top,
-            bounds.right, bounds.top + bounds.height() / 3
+        val foreheadRect = ColorAnalyzer.Rect(
+            bounds.left.coerceIn(0, bitmap.width - 1),
+            bounds.top.coerceIn(0, bitmap.height - 1),
+            bounds.right.coerceIn(1, bitmap.width),
+            (bounds.top + bounds.height() / 3).coerceIn(1, bitmap.height)
         )
         return colorAnalyzer.computeGlossiness(bitmap, foreheadRect)
     }
@@ -164,7 +176,6 @@ class FaceMeshDetector @Inject constructor(
     private fun detectAbnormalities(regions: List<FaceRegion>, face: Face): List<String> {
         val issues = mutableListOf<String>()
 
-        // 检查面色异常
         for (region in regions) {
             when (region.color) {
                 "偏黄" -> if (!issues.contains("面色偏黄")) issues.add("面色偏黄 — 可能存在脾虚或湿盛")
