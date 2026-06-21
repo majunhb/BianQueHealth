@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bianque.health.base.analysis.ImageQualityAnalyzer
+import com.bianque.health.base.analysis.ImageQualityAnalyzer.DetectionState
 import com.bianque.health.base.data.local.HealthDao
 import com.bianque.health.base.data.local.HealthRecordEntity
 import com.bianque.health.engine.data.DiagnosisCache
@@ -63,7 +64,11 @@ class TongueScanViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     detectionState = quality.detectionState,
                     qualityScore = quality.score,
-                    statusMessage = quality.message
+                    statusMessage = when (quality.detectionState) {
+                        DetectionState.NOT_DETECTED -> "请张嘴伸舌，对齐轮廓线"
+                        DetectionState.POOR_QUALITY -> "正在对焦"
+                        DetectionState.READY -> "对焦成功，可开始扫描"
+                    }
                 )
             } catch (e: Exception) {
                 Timber.w(e, "TongueScanViewModel: frame analysis failed")

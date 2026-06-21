@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bianque.health.base.analysis.ImageQualityAnalyzer
+import com.bianque.health.base.analysis.ImageQualityAnalyzer.DetectionState
 import com.bianque.health.base.data.local.HealthDao
 import com.bianque.health.base.data.local.HealthRecordEntity
 import com.bianque.health.engine.data.DiagnosisCache
@@ -61,7 +62,11 @@ class FaceScanViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     detectionState = quality.detectionState,
                     qualityScore = quality.score,
-                    statusMessage = quality.message
+                    statusMessage = when (quality.detectionState) {
+                        DetectionState.NOT_DETECTED -> "请将面部置于框内，保持正脸"
+                        DetectionState.POOR_QUALITY -> "正在定位"
+                        DetectionState.READY -> "定位成功，可开始扫描"
+                    }
                 )
             } catch (e: Exception) {
                 Timber.w(e, "FaceScanViewModel: frame analysis failed")

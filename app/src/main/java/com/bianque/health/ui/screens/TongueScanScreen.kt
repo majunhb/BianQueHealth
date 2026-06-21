@@ -177,7 +177,7 @@ fun TongueScanScreen(
                             viewModel.startScan(bitmap)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isAnalyzing && !uiState.isScanning,
+                        enabled = !uiState.isAnalyzing && !uiState.isScanning && uiState.detectionState == DetectionState.READY,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
