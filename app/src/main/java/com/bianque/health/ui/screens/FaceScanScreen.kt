@@ -19,10 +19,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -202,9 +201,7 @@ fun FaceScanScreen(
 }
 
 /**
- * 人脸轮廓遮罩 — 五区面诊辨识轮廓。
- * 根据中医面诊五区理论，将面部划分为5个诊断区域：
- *   额头(心·火)  /  左颊(肝·木) | 鼻(脾·土) | 右颊(肺·金)  /  下巴(肾·水)
+ * 人脸轮廓遮罩 — 简洁椭圆形，模拟人体面部比例。
  * 颜色根据检测状态变化：灰色(未检测到) → 黄色(定位中) → 绿色(定位成功)
  */
 @Composable
@@ -229,68 +226,30 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // 人脸轮廓参数
-        val faceWidth = canvasWidth * 0.52f
-        val faceHeight = canvasHeight * 0.62f
-        val centerX = canvasWidth / 2f
-        val topY = (canvasHeight - faceHeight) / 2f
-        val chinWidth = faceWidth * 0.5f
-        val chinY = topY + faceHeight
+        // 人脸椭圆：宽高比接近人脸比例（宽约52%，高约62%）
+        val ovalWidth = canvasWidth * 0.52f
+        val ovalHeight = canvasHeight * 0.62f
+        val topLeft = Offset(
+            (canvasWidth - ovalWidth) / 2f,
+            (canvasHeight - ovalHeight) / 2f
+        )
 
-        // 五区划分线
-        val foreheadLineY = topY + faceHeight * 0.32f   // 额/颊分界
-        val cheekLineY = topY + faceHeight * 0.62f      // 颊/下巴分界
-        val noseLeftX = centerX - faceWidth * 0.12f     // 鼻区左界
-        val noseRightX = centerX + faceWidth * 0.12f    // 鼻区右界
+        // 外轮廓
+        drawOval(
+            color = outlineColor.copy(alpha = currentAlpha),
+            topLeft = topLeft,
+            size = Size(ovalWidth, ovalHeight),
+            style = Stroke(width = 4f)
+        )
 
-        // === 外轮廓 ===
-        val path = Path().apply {
-            val cheekNarrowY = topY + faceHeight * 0.55f
-            val jawStartY = topY + faceHeight * 0.72f
-            val cornerRadius = faceWidth * 0.18f
-            moveTo(centerX - faceWidth / 2f + cornerRadius, topY)
-            lineTo(centerX + faceWidth / 2f - cornerRadius, topY)
-            arcTo(Rect(centerX + faceWidth / 2f - cornerRadius * 2f, topY, centerX + faceWidth / 2f, topY + cornerRadius * 2f), -90f, 90f, false)
-            lineTo(centerX + faceWidth / 2f, cheekNarrowY)
-            lineTo(centerX + chinWidth / 2f, jawStartY)
-            lineTo(centerX + chinWidth / 2f, chinY)
-            val chinRadius = chinWidth * 0.3f
-            arcTo(Rect(centerX - chinRadius, chinY - chinRadius * 1.5f, centerX + chinRadius, chinY + chinRadius * 0.5f), 0f, 180f, false)
-            lineTo(centerX - chinWidth / 2f, jawStartY)
-            lineTo(centerX - faceWidth / 2f, cheekNarrowY)
-            lineTo(centerX - faceWidth / 2f, topY + cornerRadius)
-            arcTo(Rect(centerX - faceWidth / 2f, topY, centerX - faceWidth / 2f + cornerRadius * 2f, topY + cornerRadius * 2f), 180f, 90f, false)
-            close()
-        }
-        drawPath(path, outlineColor.copy(alpha = currentAlpha), style = Stroke(width = 4f))
-
-        // === 五区划分线 ===
-        val partitionAlpha = currentAlpha * 0.5f
-        val lineColor = outlineColor.copy(alpha = partitionAlpha)
-
-        // 水平线：额头/脸颊分界
-        drawLine(lineColor, Offset(centerX - faceWidth / 2f, foreheadLineY), Offset(centerX + faceWidth / 2f, foreheadLineY), 1.5f)
-        // 水平线：脸颊/下巴分界
-        drawLine(lineColor, Offset(centerX - chinWidth / 2f, cheekLineY), Offset(centerX + chinWidth / 2f, cheekLineY), 1.5f)
-
-        // 竖直线：鼻区分界（从 foreheadLineY 到 cheekLineY）
-        drawLine(lineColor, Offset(noseLeftX, foreheadLineY), Offset(noseLeftX, cheekLineY), 1.5f)
-        drawLine(lineColor, Offset(noseRightX, foreheadLineY), Offset(noseRightX, cheekLineY), 1.5f)
-
-        // === 五区标签圆点 ===
-        val dotRadius = 4.5f
-        val labelAlpha = currentAlpha * 0.7f
-
-        // 额头 — 心(火)
-        drawCircle(outlineColor.copy(alpha = labelAlpha), dotRadius, Offset(centerX, topY + faceHeight * 0.16f))
-        // 左颊 — 肝(木)
-        drawCircle(outlineColor.copy(alpha = labelAlpha), dotRadius, Offset(centerX - faceWidth * 0.22f, topY + faceHeight * 0.47f))
-        // 右颊 — 肺(金)
-        drawCircle(outlineColor.copy(alpha = labelAlpha), dotRadius, Offset(centerX + faceWidth * 0.22f, topY + faceHeight * 0.47f))
-        // 鼻 — 脾(土)
-        drawCircle(outlineColor.copy(alpha = labelAlpha), dotRadius, Offset(centerX, topY + faceHeight * 0.47f))
-        // 下巴 — 肾(水)
-        drawCircle(outlineColor.copy(alpha = labelAlpha), dotRadius, Offset(centerX, topY + faceHeight * 0.82f))
+        // 内轮廓（细线，透明度更低）
+        val inset = 10f
+        drawOval(
+            color = outlineColor.copy(alpha = currentAlpha * 0.4f),
+            topLeft = Offset(topLeft.x + inset, topLeft.y + inset),
+            size = Size(ovalWidth - inset * 2f, ovalHeight - inset * 2f),
+            style = Stroke(width = 2f)
+        )
     }
 }
 

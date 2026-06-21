@@ -52,11 +52,11 @@ object ImageQualityAnalyzer {
                 vValues.add(hsv[2])
                 totalSamples++
 
-                // 舌体颜色范围：多种舌色（淡红/红/绛/淡白/紫暗）
+                // 舌体颜色范围：大幅放宽，覆盖更多实际场景
                 val isTongueColor = when {
-                    hsv[0] in 0f..20f && hsv[1] in 0.15f..0.55f && hsv[2] in 0.2f..0.65f -> true
-                    hsv[0] in 350f..360f && hsv[1] in 0.15f..0.5f && hsv[2] in 0.1f..0.5f -> true
-                    hsv[0] in 0f..15f && hsv[1] in 0.10f..0.25f && hsv[2] in 0.3f..0.7f -> true
+                    hsv[0] in 0f..25f && hsv[1] in 0.08f..0.6f && hsv[2] in 0.15f..0.75f -> true
+                    hsv[0] in 340f..360f && hsv[1] in 0.08f..0.55f && hsv[2] in 0.08f..0.6f -> true
+                    hsv[0] in 0f..20f && hsv[1] in 0.05f..0.3f && hsv[2] in 0.2f..0.8f -> true
                     else -> false
                 }
                 if (isTongueColor) tonguePixelCount++
@@ -113,12 +113,12 @@ object ImageQualityAnalyzer {
                 message = "舌体被遮挡，请重新拍摄"
             }
             // 舌体置信度低
-            qualityScore < 0.3f -> {
+            qualityScore < 0.15f -> {
                 detectionState = DetectionState.NOT_DETECTED
                 message = "未检测到舌象"
             }
             // 质量不佳，正在对焦
-            qualityScore < 0.7f -> {
+            qualityScore < 0.35f -> {
                 detectionState = DetectionState.POOR_QUALITY
                 message = "正在对焦"
             }
@@ -153,8 +153,8 @@ object ImageQualityAnalyzer {
                 vValues.add(hsv[2])
                 totalSamples++
 
-                // 肤色范围检测
-                if (hsv[0] in 0f..30f && hsv[1] in 0.1f..0.5f && hsv[2] in 0.2f..0.85f) {
+                // 肤色范围检测：大幅放宽
+                if (hsv[0] in 0f..40f && hsv[1] in 0.05f..0.6f && hsv[2] in 0.15f..0.9f) {
                     skinPixelCount++
                 }
             }
@@ -194,11 +194,11 @@ object ImageQualityAnalyzer {
                 detectionState = DetectionState.NOT_DETECTED
                 message = "未检测到人脸"
             }
-            qualityScore < 0.3f -> {
+            qualityScore < 0.15f -> {
                 detectionState = DetectionState.NOT_DETECTED
                 message = "未检测到人脸"
             }
-            qualityScore < 0.7f -> {
+            qualityScore < 0.35f -> {
                 detectionState = DetectionState.POOR_QUALITY
                 message = "正在定位"
             }
