@@ -1,12 +1,12 @@
 package com.bianque.health.face.data
 
 import android.graphics.Bitmap
-import android.graphics.PointF
 import com.bianque.health.face.data.Rect
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import com.bianque.health.face.domain.model.FaceRegion
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceContour
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import kotlinx.coroutines.Dispatchers
@@ -176,7 +176,7 @@ class FaceMeshDetector @Inject constructor(
     private fun computeConfidence(face: Face): Float {
         var conf = 0.85f
         // 根据特征点/轮廓完整性调整置信度
-        val contourPoints = face.getContour(Face.CONTOUR_FACE).size
+        val contourPoints = face.getContour(FaceContour.FACE)?.points?.size ?: 0
         if (contourPoints < 20) conf -= 0.15f
         if (face.leftEyeOpenProbability == null) conf -= 0.1f
         return conf.coerceIn(0f, 1f)
