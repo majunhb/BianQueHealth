@@ -31,12 +31,21 @@
     <string name="analyzing_face">正在分析面部特征…</string>
     <string name="face_result_title">面诊结果</string>
     <string name="face_region_title">面部区域分析</string>
+    <string name="face_guide_text">请将面部置于框内</string>
+    <string name="face_detecting">正在定位</string>
+    <string name="face_ready">定位成功</string>
 
     <!-- 舌诊 -->
     <string name="tongue_scan_title">舌象采集</string>
     <string name="start_tongue_scan">开始舌象分析</string>
     <string name="analyzing_tongue">正在分析舌象特征…</string>
     <string name="tongue_result_title">舌诊结果</string>
+    <string name="tongue_guide_text">请张嘴伸舌，对齐轮廓线</string>
+    <string name="tongue_detecting">正在对焦</string>
+    <string name="tongue_ready">对焦成功</string>
+
+    <!-- 扫描动画 -->
+    <string name="scanning">扫描中…</string>
 
     <!-- 脉诊 -->
     <string name="pulse_title">脉诊</string>

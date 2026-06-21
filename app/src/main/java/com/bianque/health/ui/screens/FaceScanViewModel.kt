@@ -3,6 +3,7 @@ package com.bianque.health.ui.screens
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bianque.health.base.analysis.ImageQualityAnalyzer
 import com.bianque.health.base.data.local.HealthDao
 import com.bianque.health.base.data.local.HealthRecordEntity
 import com.bianque.health.engine.data.DiagnosisCache
@@ -23,6 +24,10 @@ import javax.inject.Inject
 
 data class FaceScanUiState(
     val isAnalyzing: Boolean = false,
+    val isScanning: Boolean = false,
+    val detectionState: ImageQualityAnalyzer.DetectionState = ImageQualityAnalyzer.DetectionState.NOT_DETECTED,
+    val qualityScore: Float = 0f,
+    val statusMessage: String? = "请将面部置于框内",
     val diagnosisResult: FaceDiagnosisResult? = null,
     val errorMessage: String? = null
 )
@@ -37,10 +42,46 @@ class FaceScanViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FaceScanUiState())
     val uiState: StateFlow<FaceScanUiState> = _uiState.asStateFlow()
 
-    fun analyze(bitmap: Bitmap) {
-        _uiState.value = _uiState.value.copy(isAnalyzing = true, errorMessage = null)
+    private var lastFrameAnalysisTime = 0L
+    private val frameAnalysisIntervalMs = 400L
+
+    /**
+     * 实时帧分析 — 评估当前画面的人脸质量。
+     */
+    fun analyzeFrame(bitmap: Bitmap) {
+        val now = System.currentTimeMillis()
+        if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
+        lastFrameAnalysisTime = now
 
         viewModelScope.launch {
+            try {
+                val quality = withContext(Dispatchers.Default) {
+                    ImageQualityAnalyzer.analyzeFacePresence(bitmap)
+                }
+                _uiState.value = _uiState.value.copy(
+                    detectionState = quality.detectionState,
+                    qualityScore = quality.score,
+                    statusMessage = quality.message
+                )
+            } catch (e: Exception) {
+                Timber.w(e, "FaceScanViewModel: frame analysis failed")
+            }
+        }
+    }
+
+    /**
+     * 触发扫描动画，然后执行分析。
+     */
+    fun startScan(bitmap: Bitmap) {
+        if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
+
+        _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
+
+        viewModelScope.launch {
+            // 扫描动画持续 2 秒
+            kotlinx.coroutines.delay(2000)
+            _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
+
             try {
                 val result = withContext(Dispatchers.Default) {
                     faceMeshDetector.detect(bitmap)

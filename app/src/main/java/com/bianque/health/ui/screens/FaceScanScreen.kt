@@ -3,6 +3,10 @@ package com.bianque.health.ui.screens
 import android.graphics.Bitmap
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,21 +18,33 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bianque.health.R
+import com.bianque.health.base.analysis.ImageQualityAnalyzer.DetectionState
 import com.bianque.health.base.camera.CameraHelper
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import com.bianque.health.ui.components.DiagnosisLabel
 import com.bianque.health.ui.theme.Danger40
 import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
+
+// 设计文档定义的颜色
+private val OutlineBlue = Color(0xFF007AFF)
+private val OutlineGray = Color(0xFFCCCCCC)
+private val OutlineYellow = Color(0xFFFFCC00)
+private val OutlineGreen = Color(0xFF00CC66)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,16 +80,13 @@ fun FaceScanScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Box(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 if (uiState.diagnosisResult == null && uiState.errorMessage == null) {
+                    // 相机预览层
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
@@ -88,19 +101,53 @@ fun FaceScanScreen(
                                         lifecycleOwner = lifecycleOwner,
                                         previewView = this,
                                         cameraFacing = CameraSelector.LENS_FACING_FRONT,
-                                        onFrame = { bitmap -> capturedBitmap = bitmap }
+                                        onFrame = { bitmap ->
+                                            capturedBitmap = bitmap
+                                            viewModel.analyzeFrame(bitmap)
+                                        }
                                     )
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxSize()
                     )
+
+                    // 人脸轮廓遮罩层
+                    FaceOutlineOverlay(detectionState = uiState.detectionState)
+
+                    // 扫描光效动画（同心圆扩散）
+                    if (uiState.isScanning) {
+                        FaceScanAnimation()
+                    }
+
+                    // 引导文字
+                    Column(
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val outlineColor = when (uiState.detectionState) {
+                            DetectionState.NOT_DETECTED -> OutlineGray
+                            DetectionState.POOR_QUALITY -> OutlineYellow
+                            DetectionState.READY -> OutlineGreen
+                        }
+                        Text(
+                            text = uiState.statusMessage ?: "请将面部置于框内",
+                            color = outlineColor,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                 } else if (uiState.diagnosisResult != null) {
                     FaceDiagnosisResultCard(result = uiState.diagnosisResult!!)
                 } else if (uiState.errorMessage != null) {
                     FaceErrorCard(message = uiState.errorMessage!!) { viewModel.clearError() }
                 }
 
+                // 分析中遮罩
                 if (uiState.isAnalyzing) {
                     Box(
                         modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
@@ -109,28 +156,34 @@ fun FaceScanScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(stringResource(R.string.analyzing_face), color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "正在分析面色特征…",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         }
                     }
                 }
             }
 
+            // 底部按钮
             Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                 if (uiState.diagnosisResult == null) {
                     Button(
                         onClick = {
                             val bitmap = capturedBitmap
-                            if (bitmap == null) {
-                                viewModel.clearError()
-                                return@Button
-                            }
-                            viewModel.analyze(bitmap)
+                            if (bitmap == null) return@Button
+                            viewModel.startScan(bitmap)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isAnalyzing,
+                        enabled = !uiState.isAnalyzing && !uiState.isScanning,
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(stringResource(R.string.start_face_scan), style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            if (uiState.isScanning) stringResource(R.string.scanning)
+                            else stringResource(R.string.start_face_scan),
+                            style = MaterialTheme.typography.titleLarge
+                        )
                     }
                 } else {
                     Button(
@@ -147,6 +200,86 @@ fun FaceScanScreen(
     }
 }
 
+/**
+ * 人脸轮廓遮罩 — 半透明标准人脸轮廓线。
+ * 颜色根据检测状态变化：灰色(未检测到) → 黄色(定位中) → 绿色(定位成功)
+ */
+@Composable
+private fun FaceOutlineOverlay(detectionState: DetectionState) {
+    val outlineColor = when (detectionState) {
+        DetectionState.NOT_DETECTED -> OutlineGray
+        DetectionState.POOR_QUALITY -> OutlineYellow
+        DetectionState.READY -> OutlineGreen
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val canvasWidth = size.width
+        val canvasHeight = size.height
+
+        // 人脸椭圆轮廓（略大于舌形，适应面部比例）
+        val ovalWidth = canvasWidth * 0.55f
+        val ovalHeight = canvasHeight * 0.65f
+        val topLeft = Offset(
+            (canvasWidth - ovalWidth) / 2f,
+            (canvasHeight - ovalHeight) / 2f
+        )
+
+        // 外轮廓
+        drawOval(
+            color = outlineColor.copy(alpha = 0.3f),
+            topLeft = topLeft,
+            size = Size(ovalWidth, ovalHeight),
+            style = Stroke(width = 4f)
+        )
+
+        // 内轮廓
+        drawOval(
+            color = outlineColor.copy(alpha = 0.15f),
+            topLeft = Offset(topLeft.x + 10f, topLeft.y + 10f),
+            size = Size(ovalWidth - 20f, ovalHeight - 20f),
+            style = Stroke(width = 2f)
+        )
+    }
+}
+
+/**
+ * 面诊扫描光效 — 从中间向四周扩散的同心圆。
+ * 动画持续 2 秒，从中心向外匀速扩散。
+ */
+@Composable
+private fun FaceScanAnimation() {
+    val scanProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        scanProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 2000, easing = LinearEasing)
+        )
+    }
+
+    val progress = scanProgress.value
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        val maxRadius = size.width * 0.7f
+
+        // 绘制多个同心圆，形成扩散效果
+        for (i in 0..3) {
+            val phase = (progress + i * 0.25f) % 1f
+            val radius = maxRadius * phase
+            val alpha = (1f - phase) * 0.5f
+
+            drawCircle(
+                color = OutlineBlue.copy(alpha = alpha),
+                radius = radius,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 3f)
+            )
+        }
+    }
+}
+
 @Composable
 private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
     Card(
@@ -155,14 +288,24 @@ private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-            Text(stringResource(R.string.face_result_title), style = MaterialTheme.typography.headlineMedium, color = Green40, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.face_result_title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = Green40,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.height(16.dp))
             DiagnosisLabel(label = stringResource(R.string.label_complexion), value = result.overallComplexion)
             DiagnosisLabel(label = stringResource(R.string.label_gloss), value = "${(result.glossLevel * 100).toInt()}%")
             DiagnosisLabel(label = stringResource(R.string.label_confidence), value = "${(result.confidence * 100).toInt()}%")
             if (result.regions.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(stringResource(R.string.face_region_title), style = MaterialTheme.typography.titleLarge, color = Green40, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.face_region_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Green40,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 result.regions.forEach { region ->
                     DiagnosisLabel(label = region.name, value = region.color)
@@ -170,10 +313,20 @@ private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
             }
             if (result.abnormalities.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(stringResource(R.string.label_tips), style = MaterialTheme.typography.titleLarge, color = Danger40, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.label_tips),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Danger40,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 result.abnormalities.forEach { issue ->
-                    Text("• $issue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(vertical = 2.dp))
+                    Text(
+                        "• $issue",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.bianque.health.ui.screens
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bianque.health.base.analysis.ImageQualityAnalyzer
 import com.bianque.health.base.data.local.HealthDao
 import com.bianque.health.base.data.local.HealthRecordEntity
 import com.bianque.health.engine.data.DiagnosisCache
@@ -23,6 +24,10 @@ import javax.inject.Inject
 
 data class TongueScanUiState(
     val isAnalyzing: Boolean = false,
+    val isScanning: Boolean = false,
+    val detectionState: ImageQualityAnalyzer.DetectionState = ImageQualityAnalyzer.DetectionState.NOT_DETECTED,
+    val qualityScore: Float = 0f,
+    val statusMessage: String? = "请张嘴伸舌，对齐轮廓线",
     val diagnosisResult: TongueDiagnosisResult? = null,
     val errorMessage: String? = null
 )
@@ -38,10 +43,47 @@ class TongueScanViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TongueScanUiState())
     val uiState: StateFlow<TongueScanUiState> = _uiState.asStateFlow()
 
-    fun analyze(bitmap: Bitmap) {
-        _uiState.value = _uiState.value.copy(isAnalyzing = true, errorMessage = null)
+    private var lastFrameAnalysisTime = 0L
+    private val frameAnalysisIntervalMs = 400L
+
+    /**
+     * 实时帧分析 — 评估当前画面的舌象质量。
+     * 每 400ms 分析一次，避免过度消耗资源。
+     */
+    fun analyzeFrame(bitmap: Bitmap) {
+        val now = System.currentTimeMillis()
+        if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
+        lastFrameAnalysisTime = now
 
         viewModelScope.launch {
+            try {
+                val quality = withContext(Dispatchers.Default) {
+                    ImageQualityAnalyzer.analyzeTongueFrame(bitmap)
+                }
+                _uiState.value = _uiState.value.copy(
+                    detectionState = quality.detectionState,
+                    qualityScore = quality.score,
+                    statusMessage = quality.message
+                )
+            } catch (e: Exception) {
+                Timber.w(e, "TongueScanViewModel: frame analysis failed")
+            }
+        }
+    }
+
+    /**
+     * 触发扫描动画，然后执行分析。
+     */
+    fun startScan(bitmap: Bitmap) {
+        if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
+
+        _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
+
+        viewModelScope.launch {
+            // 扫描动画持续 1.5 秒
+            kotlinx.coroutines.delay(1500)
+            _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
+
             try {
                 val masked = withContext(Dispatchers.Default) { tongueSegmenter.segment(bitmap) }
                 val result = withContext(Dispatchers.Default) { tongueFeatureExtractor.extract(masked) }
