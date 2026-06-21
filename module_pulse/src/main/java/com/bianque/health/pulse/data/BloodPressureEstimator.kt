@@ -1,5 +1,6 @@
 package com.bianque.health.pulse.data
 
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**

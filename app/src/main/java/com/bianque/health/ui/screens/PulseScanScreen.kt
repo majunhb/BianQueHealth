@@ -2,9 +2,7 @@ package com.bianque.health.ui.screens
 
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.RepeatMode
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

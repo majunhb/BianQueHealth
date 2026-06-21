@@ -112,8 +112,8 @@ object RppGProcessor {
 
             // 自适应α：基于信号标准差
             val alpha = if (i > 0) {
-                val stdX = computeStd(x, h, i)
-                val stdY = computeStd(y, h, i)
+                val stdX = computeStd(x, y, i)
+                val stdY = computeStd(y, x, i)
                 stdX / (stdY + 1e-6f)
             } else 0.5f
 

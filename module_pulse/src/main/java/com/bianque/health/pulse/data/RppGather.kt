@@ -76,6 +76,7 @@ object RppGather {
 
         // 右脸颊
         val rightCheekX = (width * 0.65f).toInt()
+        val rightCheekY = leftCheekY
 
         var rSum = 0f
         var gSum = 0f
