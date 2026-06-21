@@ -52,11 +52,16 @@ object ImageQualityAnalyzer {
                 vValues.add(hsv[2])
                 totalSamples++
 
-                // 舌体颜色范围：大幅放宽，覆盖更多实际场景
+                // 舌体颜色范围：收紧，只匹配真正的舌色（红/粉/暗红），排除肤色
+                // 肤色特征：饱和度低(0.05-0.25)、亮度高(0.4-0.9)、色调偏橙黄(10-30)
+                // 舌色特征：饱和度较高(0.2-0.65)、亮度中等(0.2-0.65)、色调偏红(0-15或340-360)
                 val isTongueColor = when {
-                    hsv[0] in 0f..25f && hsv[1] in 0.08f..0.6f && hsv[2] in 0.15f..0.75f -> true
-                    hsv[0] in 340f..360f && hsv[1] in 0.08f..0.55f && hsv[2] in 0.08f..0.6f -> true
-                    hsv[0] in 0f..20f && hsv[1] in 0.05f..0.3f && hsv[2] in 0.2f..0.8f -> true
+                    // 淡红舌/红舌：高饱和度红色
+                    hsv[0] in 0f..15f && hsv[1] in 0.25f..0.65f && hsv[2] in 0.2f..0.6f -> true
+                    // 红绛舌/紫暗舌：深色红
+                    hsv[0] in 340f..360f && hsv[1] in 0.25f..0.6f && hsv[2] in 0.15f..0.5f -> true
+                    // 淡红舌：较低饱和度但仍是红色调
+                    hsv[0] in 0f..12f && hsv[1] in 0.2f..0.45f && hsv[2] in 0.3f..0.65f -> true
                     else -> false
                 }
                 if (isTongueColor) tonguePixelCount++

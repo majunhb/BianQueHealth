@@ -47,11 +47,15 @@ class TongueScanViewModel @Inject constructor(
 
     private var lastFrameAnalysisTime = 0L
     private val frameAnalysisIntervalMs = 400L
+    private var captureCooldownUntil = 0L
 
     fun analyzeFrame(bitmap: Bitmap) {
         val now = System.currentTimeMillis()
         if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
         lastFrameAnalysisTime = now
+
+        // 冷却期内跳过分析
+        if (now < captureCooldownUntil) return
 
         viewModelScope.launch {
             try {
@@ -73,9 +77,6 @@ class TongueScanViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 自动抓拍：由Screen层LaunchedEffect调用。
-     */
     fun autoCapture(bitmap: Bitmap) {
         if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
         if (_uiState.value.diagnosisResult != null) return
@@ -95,6 +96,7 @@ class TongueScanViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isAnalyzing = false, diagnosisResult = result)
             } catch (e: Exception) {
                 Timber.e(e, "TongueScanViewModel: autoCapture failed")
+                captureCooldownUntil = System.currentTimeMillis() + 3000
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
                     isAnalyzing = false,
@@ -106,6 +108,7 @@ class TongueScanViewModel @Inject constructor(
     }
 
     fun reset() {
+        captureCooldownUntil = 0L
         _uiState.value = TongueScanUiState()
     }
 

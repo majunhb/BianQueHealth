@@ -12,7 +12,6 @@ import com.bianque.health.face.data.FaceMeshDetector
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,38 +46,28 @@ class FaceScanViewModel @Inject constructor(
 
     private var lastFrameAnalysisTime = 0L
     private val frameAnalysisIntervalMs = 400L
-    private var autoCaptureJob: Job? = null
-    private var stableReadyCount = 0
+    private var captureCooldownUntil = 0L  // 冷却期：失败后3秒内不报告READY
 
-    /**
-     * 实时帧分析 — 评估当前画面的人脸质量。
-     * 当连续3帧判定为READY时，自动触发抓拍。
-     */
     fun analyzeFrame(bitmap: Bitmap) {
         val now = System.currentTimeMillis()
         if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
         lastFrameAnalysisTime = now
+
+        // 冷却期内跳过分析，避免连拍循环
+        if (now < captureCooldownUntil) return
 
         viewModelScope.launch {
             try {
                 val quality = withContext(Dispatchers.Default) {
                     ImageQualityAnalyzer.analyzeFacePresence(bitmap)
                 }
-                val newState = quality.detectionState
-
-                // 连续稳定计数：避免闪烁
-                if (newState == DetectionState.READY) {
-                    stableReadyCount++
-                } else {
-                    stableReadyCount = 0
-                }
 
                 _uiState.value = _uiState.value.copy(
-                    detectionState = newState,
+                    detectionState = quality.detectionState,
                     qualityScore = quality.score,
-                    statusMessage = when {
-                        newState == DetectionState.READY -> "定位成功，正在自动检测…"
-                        newState == DetectionState.POOR_QUALITY -> "正在定位，请保持面部正对镜头"
+                    statusMessage = when (quality.detectionState) {
+                        DetectionState.READY -> "定位成功，正在自动检测…"
+                        DetectionState.POOR_QUALITY -> "正在定位，请保持面部正对镜头"
                         else -> "请将面部置于框内，保持正脸"
                     }
                 )
@@ -88,10 +77,6 @@ class FaceScanViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 自动抓拍：由Screen层LaunchedEffect调用。
-     * 先运行ML Kit预检，确认真有人脸再进入扫描动画。
-     */
     fun autoCapture(bitmap: Bitmap) {
         if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
         if (_uiState.value.diagnosisResult != null) return
@@ -100,12 +85,12 @@ class FaceScanViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // 预检：先用ML Kit快速确认人脸是否真的存在
                 val preCheck = withContext(Dispatchers.Default) {
                     faceMeshDetector.detect(bitmap)
                 }
                 if (preCheck.overallComplexion == "未检测到面部") {
-                    // ML Kit未检测到人脸，回退到POOR_QUALITY
+                    // ML Kit未检测到人脸 → 进入3秒冷却期，防止连拍
+                    captureCooldownUntil = System.currentTimeMillis() + 3000
                     _uiState.value = _uiState.value.copy(
                         isScanning = false,
                         detectionState = DetectionState.POOR_QUALITY,
@@ -123,6 +108,7 @@ class FaceScanViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isAnalyzing = false, diagnosisResult = preCheck)
             } catch (e: Exception) {
                 Timber.e(e, "FaceScanViewModel: autoCapture failed")
+                captureCooldownUntil = System.currentTimeMillis() + 3000
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
                     isAnalyzing = false,
@@ -134,7 +120,7 @@ class FaceScanViewModel @Inject constructor(
     }
 
     fun reset() {
-        stableReadyCount = 0
+        captureCooldownUntil = 0L
         _uiState.value = FaceScanUiState()
     }
 
