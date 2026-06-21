@@ -4,28 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 葫芦藤蔓（顶部） -->
+    <!-- 外圆环 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,2 C54,0 56,0 58,0 C60,0 62,0 62,2" />
-    <!-- 葫芦口 -->
+        android:fillAlpha="0.15"
+        android:pathData="M54,54m-44,0a44,44 0,1 1,88 0a44,44 0,1 1,-88 0" />
+    <!-- 十字竖线 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M48,6 L48,16 L60,16 L60,6 C60,4 58,2 54,2 C50,2 48,4 48,6 Z" />
-    <!-- 上葫芦（窄身）y=16~48, 宽约40~68 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M40,22 C40,14 44,12 54,12 C64,12 68,14 68,22 C68,32 66,40 66,46 C66,48 70,50 66,52 C60,54 48,54 42,52 C38,50 40,48 40,46 Z" />
-    <!-- 葫芦腰线 -->
-    <path
-        android:fillColor="#1B5E20"
-        android:pathData="M42,50 L42,54 L66,54 L66,50 Z" />
-    <!-- 下葫芦（宽身）y=54~92 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M30,70 C30,56 36,52 54,52 C72,52 78,56 78,70 C78,84 72,92 54,92 C36,92 30,84 30,70 Z" />
-    <!-- 底部太极点 -->
-    <path
-        android:fillColor="#1B5E20"
-        android:pathData="M54,86 C54,86 52,88 54,90 C56,88 54,86 54,86 Z" />
+        android:pathData="M48,24 L48,48 L24,48 L24,60 L48,60 L48,84 L60,84 L60,60 L84,60 L84,48 L60,48 L60,24 Z" />
 </vector>

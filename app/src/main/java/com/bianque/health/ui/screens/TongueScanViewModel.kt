@@ -13,6 +13,7 @@ import com.bianque.health.tongue.data.TongueSegmenter
 import com.bianque.health.tongue.domain.model.TongueDiagnosisResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,10 +48,6 @@ class TongueScanViewModel @Inject constructor(
     private var lastFrameAnalysisTime = 0L
     private val frameAnalysisIntervalMs = 400L
 
-    /**
-     * 实时帧分析 — 评估当前画面的舌象质量。
-     * 每 400ms 分析一次，避免过度消耗资源。
-     */
     fun analyzeFrame(bitmap: Bitmap) {
         val now = System.currentTimeMillis()
         if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
@@ -66,8 +63,8 @@ class TongueScanViewModel @Inject constructor(
                     qualityScore = quality.score,
                     statusMessage = when (quality.detectionState) {
                         DetectionState.NOT_DETECTED -> "请张嘴伸舌，对齐轮廓线"
-                        DetectionState.POOR_QUALITY -> "正在对焦"
-                        DetectionState.READY -> "对焦成功，可开始扫描"
+                        DetectionState.POOR_QUALITY -> "正在对焦，请保持稳定"
+                        DetectionState.READY -> "对焦成功，正在自动检测…"
                     }
                 )
             } catch (e: Exception) {
@@ -77,16 +74,17 @@ class TongueScanViewModel @Inject constructor(
     }
 
     /**
-     * 触发扫描动画，然后执行分析。
+     * 自动抓拍：由Screen层LaunchedEffect调用。
      */
-    fun startScan(bitmap: Bitmap) {
+    fun autoCapture(bitmap: Bitmap) {
         if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
+        if (_uiState.value.diagnosisResult != null) return
 
         _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
 
         viewModelScope.launch {
             // 扫描动画持续 1.5 秒
-            kotlinx.coroutines.delay(1500)
+            delay(1500)
             _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
 
             try {
@@ -96,10 +94,12 @@ class TongueScanViewModel @Inject constructor(
                 persistResult(result)
                 _uiState.value = _uiState.value.copy(isAnalyzing = false, diagnosisResult = result)
             } catch (e: Exception) {
-                Timber.e(e, "TongueScanViewModel: analysis failed")
+                Timber.e(e, "TongueScanViewModel: autoCapture failed")
                 _uiState.value = _uiState.value.copy(
+                    isScanning = false,
                     isAnalyzing = false,
-                    errorMessage = "舌象分析失败: ${e.message}"
+                    detectionState = DetectionState.POOR_QUALITY,
+                    statusMessage = "正在对焦，请保持稳定"
                 )
             }
         }

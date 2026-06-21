@@ -1,6 +1,8 @@
 package com.bianque.health.ui.screens
 
 import android.graphics.Bitmap
+import android.media.MediaActionSound
+import android.speech.tts.TextToSpeech
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
@@ -23,6 +25,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,8 +42,9 @@ import com.bianque.health.ui.components.DiagnosisLabel
 import com.bianque.health.ui.theme.Danger40
 import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
+import kotlinx.coroutines.delay
+import java.util.Locale
 
-// 设计文档定义的颜色
 private val OutlineBlue = Color(0xFF007AFF)
 private val OutlineGray = Color(0xFFCCCCCC)
 private val OutlineYellow = Color(0xFFFFCC00)
@@ -55,9 +59,48 @@ fun TongueScanScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+
+    // 语音播报
+    val tts = remember { TextToSpeech(context) { status ->
+        if (status == TextToSpeech.SUCCESS) {
+            tts.language = Locale.CHINESE
+        }
+    } }
+    var lastSpokenMsg by remember { mutableStateOf("") }
+    LaunchedEffect(uiState.statusMessage) {
+        val msg = uiState.statusMessage ?: ""
+        if (msg.isNotEmpty() && msg != lastSpokenMsg && tts.isSpeaking.not()) {
+            lastSpokenMsg = msg
+            tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "tongue_tts")
+        }
+    }
+
+    // 快门音效
+    val shutterSound = remember { MediaActionSound() }
 
     DisposableEffect(Unit) {
-        onDispose { CameraHelper.unbind() }
+        onDispose {
+            CameraHelper.unbind()
+            tts.stop()
+            tts.shutdown()
+        }
+    }
+
+    // 自动抓拍：当连续处于READY状态0.8秒后自动触发
+    LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
+        if (uiState.detectionState == DetectionState.READY
+            && !uiState.isScanning
+            && !uiState.isAnalyzing
+            && uiState.diagnosisResult == null
+        ) {
+            delay(800)
+            val bitmap = capturedBitmap
+            if (bitmap != null) {
+                shutterSound.play(MediaActionSound.SHUTTER_CLICK)
+                viewModel.autoCapture(bitmap)
+            }
+        }
     }
 
     Scaffold(
@@ -81,13 +124,11 @@ fun TongueScanScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            // 相机预览区域
             Box(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 if (uiState.diagnosisResult == null && uiState.errorMessage == null) {
-                    // 相机预览层
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
@@ -113,15 +154,12 @@ fun TongueScanScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // 舌形轮廓遮罩层
                     TongueOutlineOverlay(detectionState = uiState.detectionState)
 
-                    // 扫描光效动画
                     if (uiState.isScanning) {
                         TongueScanAnimation()
                     }
 
-                    // 引导文字
                     Column(
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -148,7 +186,6 @@ fun TongueScanScreen(
                     TongueErrorCard(message = uiState.errorMessage!!) { viewModel.clearError() }
                 }
 
-                // 分析中遮罩
                 if (uiState.isAnalyzing) {
                     Box(
                         modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
@@ -157,36 +194,14 @@ fun TongueScanScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                stringResource(R.string.analyzing_tongue),
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text(stringResource(R.string.analyzing_tongue), color = Color.White, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
             }
 
-            // 底部按钮
             Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                if (uiState.diagnosisResult == null) {
-                    Button(
-                        onClick = {
-                            val bitmap = capturedBitmap
-                            if (bitmap == null) return@Button
-                            viewModel.startScan(bitmap)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isAnalyzing && !uiState.isScanning && uiState.detectionState == DetectionState.READY,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            if (uiState.isScanning) stringResource(R.string.scanning)
-                            else stringResource(R.string.start_tongue_scan),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                } else {
+                if (uiState.diagnosisResult != null) {
                     Button(
                         onClick = { viewModel.reset() },
                         modifier = Modifier.fillMaxWidth(),
@@ -201,10 +216,6 @@ fun TongueScanScreen(
     }
 }
 
-/**
- * 舌形轮廓遮罩 — 科技感半透明轮廓线。
- * 颜色根据检测状态变化：灰色(未检测到) → 黄色(质量不佳) → 绿色(对焦成功)
- */
 @Composable
 private fun TongueOutlineOverlay(detectionState: DetectionState) {
     val outlineColor = when (detectionState) {
@@ -216,66 +227,30 @@ private fun TongueOutlineOverlay(detectionState: DetectionState) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-
-        // 绘制舌形椭圆轮廓（竖直方向，模拟张嘴伸舌）
         val ovalWidth = canvasWidth * 0.4f
         val ovalHeight = canvasHeight * 0.55f
-        val topLeft = Offset(
-            (canvasWidth - ovalWidth) / 2f,
-            (canvasHeight - ovalHeight) / 2f
-        )
+        val topLeft = Offset((canvasWidth - ovalWidth) / 2f, (canvasHeight - ovalHeight) / 2f)
 
-        // 外轮廓
-        drawOval(
-            color = outlineColor.copy(alpha = 0.3f),
-            topLeft = topLeft,
-            size = Size(ovalWidth, ovalHeight),
-            style = Stroke(width = 4f)
-        )
-
-        // 内轮廓（虚线效果，通过缩小+描边模拟）
-        drawOval(
-            color = outlineColor.copy(alpha = 0.15f),
-            topLeft = Offset(topLeft.x + 8f, topLeft.y + 8f),
-            size = Size(ovalWidth - 16f, ovalHeight - 16f),
-            style = Stroke(width = 2f)
-        )
+        drawOval(color = outlineColor.copy(alpha = 0.3f), topLeft = topLeft, size = Size(ovalWidth, ovalHeight), style = Stroke(width = 4f))
+        drawOval(color = outlineColor.copy(alpha = 0.15f), topLeft = Offset(topLeft.x + 8f, topLeft.y + 8f), size = Size(ovalWidth - 16f, ovalHeight - 16f), style = Stroke(width = 2f))
     }
 }
 
-/**
- * 舌诊扫描光效 — 从上至下移动的发光条。
- * 动画持续 1.5 秒，线性渐变光带。
- */
 @Composable
 private fun TongueScanAnimation() {
     val scanProgress = remember { Animatable(0f) }
-
-    LaunchedEffect(Unit) {
-        scanProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 1500, easing = LinearEasing)
-        )
-    }
-
+    LaunchedEffect(Unit) { scanProgress.animateTo(1f, tween(1500, easing = LinearEasing)) }
     val scanY = scanProgress.value
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-
-        // 扫描光带位置
         val barHeight = canvasHeight * 0.04f
         val barY = (canvasHeight * 0.15f) + (canvasHeight * 0.7f) * scanY
 
-        // 水平渐变光带
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(
-                    OutlineBlue.copy(alpha = 0f),
-                    OutlineBlue.copy(alpha = 0.6f),
-                    OutlineBlue.copy(alpha = 0f)
-                ),
+                colors = listOf(OutlineBlue.copy(alpha = 0f), OutlineBlue.copy(alpha = 0.6f), OutlineBlue.copy(alpha = 0f)),
                 startY = barY - barHeight,
                 endY = barY + barHeight
             ),
@@ -293,12 +268,7 @@ private fun TongueDiagnosisResultCard(result: TongueDiagnosisResult) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-            Text(
-                stringResource(R.string.tongue_result_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = Green40,
-                fontWeight = FontWeight.Bold
-            )
+            Text(stringResource(R.string.tongue_result_title), style = MaterialTheme.typography.headlineMedium, color = Green40, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             DiagnosisLabel(label = stringResource(R.string.label_tongue_color), value = result.tongueColor)
             DiagnosisLabel(label = stringResource(R.string.label_coating_color), value = result.coatingColor)
@@ -310,18 +280,9 @@ private fun TongueDiagnosisResultCard(result: TongueDiagnosisResult) {
             DiagnosisLabel(label = stringResource(R.string.label_tongue_mobility), value = result.tongueMobility)
             DiagnosisLabel(label = stringResource(R.string.label_confidence), value = "${(result.confidence * 100).toInt()}%")
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                stringResource(R.string.tcm_interpretation),
-                style = MaterialTheme.typography.titleLarge,
-                color = Warm40,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(stringResource(R.string.tcm_interpretation), style = MaterialTheme.typography.titleLarge, color = Warm40, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                interpretTongue(result),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text(interpretTongue(result), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

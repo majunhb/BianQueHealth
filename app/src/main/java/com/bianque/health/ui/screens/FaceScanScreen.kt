@@ -1,6 +1,8 @@
 package com.bianque.health.ui.screens
 
 import android.graphics.Bitmap
+import android.media.MediaActionSound
+import android.speech.tts.TextToSpeech
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
@@ -20,9 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,8 +41,9 @@ import com.bianque.health.ui.components.DiagnosisLabel
 import com.bianque.health.ui.theme.Danger40
 import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
+import kotlinx.coroutines.delay
+import java.util.Locale
 
-// 设计文档定义的颜色
 private val OutlineBlue = Color(0xFF007AFF)
 private val OutlineGray = Color(0xFFCCCCCC)
 private val OutlineYellow = Color(0xFFFFCC00)
@@ -55,9 +58,48 @@ fun FaceScanScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+
+    // 语音播报
+    val tts = remember { TextToSpeech(context) { status ->
+        if (status == TextToSpeech.SUCCESS) {
+            tts.language = Locale.CHINESE
+        }
+    } }
+    var lastSpokenMsg by remember { mutableStateOf("") }
+    LaunchedEffect(uiState.statusMessage) {
+        val msg = uiState.statusMessage ?: ""
+        if (msg.isNotEmpty() && msg != lastSpokenMsg && tts.isSpeaking.not()) {
+            lastSpokenMsg = msg
+            tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "face_tts")
+        }
+    }
+
+    // 快门音效
+    val shutterSound = remember { MediaActionSound() }
 
     DisposableEffect(Unit) {
-        onDispose { CameraHelper.unbind() }
+        onDispose {
+            CameraHelper.unbind()
+            tts.stop()
+            tts.shutdown()
+        }
+    }
+
+    // 自动抓拍：当连续处于READY状态1秒后自动触发
+    LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
+        if (uiState.detectionState == DetectionState.READY
+            && !uiState.isScanning
+            && !uiState.isAnalyzing
+            && uiState.diagnosisResult == null
+        ) {
+            delay(800) // 稳定0.8秒后自动抓拍
+            val bitmap = capturedBitmap
+            if (bitmap != null) {
+                shutterSound.play(MediaActionSound.SHUTTER_CLICK)
+                viewModel.autoCapture(bitmap)
+            }
+        }
     }
 
     Scaffold(
@@ -115,7 +157,7 @@ fun FaceScanScreen(
                     // 人脸轮廓遮罩层
                     FaceOutlineOverlay(detectionState = uiState.detectionState)
 
-                    // 扫描光效动画（同心圆扩散）
+                    // 扫描光效动画
                     if (uiState.isScanning) {
                         FaceScanAnimation()
                     }
@@ -131,7 +173,7 @@ fun FaceScanScreen(
                             DetectionState.READY -> OutlineGreen
                         }
                         Text(
-                            text = uiState.statusMessage ?: "请将面部置于框内",
+                            text = uiState.statusMessage ?: "请将面部置于框内，保持正脸",
                             color = outlineColor,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -166,26 +208,9 @@ fun FaceScanScreen(
                 }
             }
 
-            // 底部按钮
+            // 底部按钮（仅重试时需要）
             Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                if (uiState.diagnosisResult == null) {
-                    Button(
-                        onClick = {
-                            val bitmap = capturedBitmap
-                            if (bitmap == null) return@Button
-                            viewModel.startScan(bitmap)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isAnalyzing && !uiState.isScanning && uiState.detectionState == DetectionState.READY,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            if (uiState.isScanning) stringResource(R.string.scanning)
-                            else stringResource(R.string.start_face_scan),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                } else {
+                if (uiState.diagnosisResult != null) {
                     Button(
                         onClick = { viewModel.reset() },
                         modifier = Modifier.fillMaxWidth(),
@@ -202,7 +227,6 @@ fun FaceScanScreen(
 
 /**
  * 人脸轮廓遮罩 — 简洁椭圆形，模拟人体面部比例。
- * 颜色根据检测状态变化：灰色(未检测到) → 黄色(定位中) → 绿色(定位成功)
  */
 @Composable
 private fun FaceOutlineOverlay(detectionState: DetectionState) {
@@ -212,7 +236,6 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
         DetectionState.READY -> OutlineGreen
     }
 
-    // 脉冲动画：NOT_DETECTED 状态下呼吸效果
     val pulseAlpha = remember { Animatable(0.3f) }
     LaunchedEffect(detectionState) {
         if (detectionState == DetectionState.NOT_DETECTED) {
@@ -226,7 +249,6 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // 人脸椭圆：宽高比接近人脸比例（宽约52%，高约62%）
         val ovalWidth = canvasWidth * 0.52f
         val ovalHeight = canvasHeight * 0.62f
         val topLeft = Offset(
@@ -234,7 +256,6 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
             (canvasHeight - ovalHeight) / 2f
         )
 
-        // 外轮廓
         drawOval(
             color = outlineColor.copy(alpha = currentAlpha),
             topLeft = topLeft,
@@ -242,7 +263,6 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
             style = Stroke(width = 4f)
         )
 
-        // 内轮廓（细线，透明度更低）
         val inset = 10f
         drawOval(
             color = outlineColor.copy(alpha = currentAlpha * 0.4f),
@@ -253,21 +273,12 @@ private fun FaceOutlineOverlay(detectionState: DetectionState) {
     }
 }
 
-/**
- * 面诊扫描光效 — 从中间向四周扩散的同心圆。
- * 动画持续 2 秒，从中心向外匀速扩散。
- */
 @Composable
 private fun FaceScanAnimation() {
     val scanProgress = remember { Animatable(0f) }
-
     LaunchedEffect(Unit) {
-        scanProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 2000, easing = LinearEasing)
-        )
+        scanProgress.animateTo(1f, tween(2000, easing = LinearEasing))
     }
-
     val progress = scanProgress.value
 
     Canvas(modifier = Modifier.fillMaxSize()) {
@@ -275,12 +286,10 @@ private fun FaceScanAnimation() {
         val centerY = size.height / 2f
         val maxRadius = size.width * 0.7f
 
-        // 绘制多个同心圆，形成扩散效果
         for (i in 0..3) {
             val phase = (progress + i * 0.25f) % 1f
             val radius = maxRadius * phase
             val alpha = (1f - phase) * 0.5f
-
             drawCircle(
                 color = OutlineBlue.copy(alpha = alpha),
                 radius = radius,
@@ -299,24 +308,14 @@ private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-            Text(
-                stringResource(R.string.face_result_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = Green40,
-                fontWeight = FontWeight.Bold
-            )
+            Text(stringResource(R.string.face_result_title), style = MaterialTheme.typography.headlineMedium, color = Green40, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             DiagnosisLabel(label = stringResource(R.string.label_complexion), value = result.overallComplexion)
             DiagnosisLabel(label = stringResource(R.string.label_gloss), value = "${(result.glossLevel * 100).toInt()}%")
             DiagnosisLabel(label = stringResource(R.string.label_confidence), value = "${(result.confidence * 100).toInt()}%")
             if (result.regions.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    stringResource(R.string.face_region_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Green40,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text(stringResource(R.string.face_region_title), style = MaterialTheme.typography.titleLarge, color = Green40, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 result.regions.forEach { region ->
                     DiagnosisLabel(label = region.name, value = region.color)
@@ -324,20 +323,10 @@ private fun FaceDiagnosisResultCard(result: FaceDiagnosisResult) {
             }
             if (result.abnormalities.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    stringResource(R.string.label_tips),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Danger40,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text(stringResource(R.string.label_tips), style = MaterialTheme.typography.titleLarge, color = Danger40, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 result.abnormalities.forEach { issue ->
-                    Text(
-                        "• $issue",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    )
+                    Text("• $issue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(vertical = 2.dp))
                 }
             }
         }
