@@ -1,6 +1,7 @@
 package com.bianque.health.ui.screens
 
 import android.graphics.Bitmap
+import android.graphics.PointF
 import android.graphics.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,11 +34,12 @@ data class FaceScanUiState(
     val statusMessage: String? = "请将面部置于框内，保持正脸",
     val diagnosisResult: FaceDiagnosisResult? = null,
     val errorMessage: String? = null,
-    // 实时面部预览数据（用于动态引导框）
+    // 实时面部预览数据（用于绘制真实面部轮廓线）
     val faceFound: Boolean = false,
     val faceRect: Rect? = null,
     val imageWidth: Int = 0,
-    val imageHeight: Int = 0
+    val imageHeight: Int = 0,
+    val faceContourPoints: List<PointF> = emptyList()
 )
 
 @HiltViewModel
@@ -75,7 +77,8 @@ class FaceScanViewModel @Inject constructor(
                     faceFound = result.faceFound,
                     faceRect = result.boundingBox,
                     imageWidth = result.imageWidth,
-                    imageHeight = result.imageHeight
+                    imageHeight = result.imageHeight,
+                    faceContourPoints = result.contourPoints
                 )
             } catch (e: Exception) {
                 Timber.w(e, "FaceScanViewModel: frame analysis failed")

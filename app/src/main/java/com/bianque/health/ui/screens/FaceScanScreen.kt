@@ -1,6 +1,7 @@
 package com.bianque.health.ui.screens
 
 import android.graphics.Bitmap
+import android.graphics.PointF
 import android.graphics.Rect
 import android.media.MediaActionSound
 import android.speech.tts.TextToSpeech
@@ -44,6 +45,7 @@ import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
 import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.math.max
 
 private val OutlineBlue = Color(0xFF007AFF)
 private val OutlineGray = Color(0xFFCCCCCC)
@@ -155,12 +157,13 @@ fun FaceScanScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // 人脸轮廓遮罩层（动态跟随人脸位置）
+                    // 人脸轮廓遮罩层（真实面部轮廓线，ML Kit 36点）
                     FaceOutlineOverlay(
                         detectionState = uiState.detectionState,
                         faceRect = uiState.faceRect,
                         imageWidth = uiState.imageWidth,
-                        imageHeight = uiState.imageHeight
+                        imageHeight = uiState.imageHeight,
+                        contourPoints = uiState.faceContourPoints
                     )
 
                     // 扫描光效动画
@@ -232,17 +235,19 @@ fun FaceScanScreen(
 }
 
 /**
- * 人脸轮廓遮罩 — 面部轮廓线，模拟人脸外观。
+ * 人脸轮廓遮罩 — 使用 ML Kit 36个面部轮廓点绘制真实面部轮廓线。
  *
- * 使用贝塞尔曲线绘制近似人脸轮廓（额头弧线 → 太阳穴 → 颧骨 → 下颌 → 下巴）。
- * 只要人脸与轮廓线重叠即开始扫描。
+ * 对标 dlib 68点方案：ML Kit 的 FaceContour.FACE 提供 36 个轮廓点，
+ * 覆盖额头、太阳穴、颧骨、下颌线，形成贴合真实人脸形状的闭合曲线。
+ * 检测到人脸 → 轮廓线变绿，自动扫描；未检测到 → 轮廓线灰白脉冲。
  */
 @Composable
 private fun FaceOutlineOverlay(
     detectionState: DetectionState,
     faceRect: Rect?,
     imageWidth: Int,
-    imageHeight: Int
+    imageHeight: Int,
+    contourPoints: List<PointF>
 ) {
     val outlineColor = when (detectionState) {
         DetectionState.NOT_DETECTED -> OutlineGray
@@ -263,93 +268,63 @@ private fun FaceOutlineOverlay(
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // 轮廓线居中，宽 52% 画面宽，高 62% 画面高
-        val w = canvasWidth * 0.52f
-        val h = canvasHeight * 0.62f
-        val cx = canvasWidth / 2f
-        val cy = canvasHeight / 2f
+        if (contourPoints.isNotEmpty() && imageWidth > 0 && imageHeight > 0) {
+            // === 绘制真实面部轮廓线（ML Kit 36点） ===
+            // 图像坐标 → 屏幕坐标映射（FILL_CENTER + 前置摄像头镜像）
+            val scaleX = canvasWidth / imageWidth.toFloat()
+            val scaleY = canvasHeight / imageHeight.toFloat()
+            val scale = max(scaleX, scaleY)
+            val displayW = imageWidth * scale
+            val displayH = imageHeight * scale
+            val offsetX = (canvasWidth - displayW) / 2f
+            val offsetY = (canvasHeight - displayH) / 2f
 
-        // 面部轮廓 Path：贝塞尔曲线模拟人脸外形
-        val facePath = Path().apply {
-            // 额头左 → 额头右
-            moveTo(cx - w * 0.38f, cy - h * 0.35f)
-            cubicTo(
-                cx - w * 0.15f, cy - h * 0.48f,
-                cx + w * 0.15f, cy - h * 0.48f,
-                cx + w * 0.38f, cy - h * 0.35f
+            val facePath = Path()
+            contourPoints.forEachIndexed { index, point ->
+                // 前置摄像头水平镜像：screenX = canvasWidth - (imageX * scale + offsetX)
+                val sx = canvasWidth - (point.x * scale + offsetX)
+                val sy = point.y * scale + offsetY
+                if (index == 0) {
+                    facePath.moveTo(sx, sy)
+                } else {
+                    facePath.lineTo(sx, sy)
+                }
+            }
+            facePath.close()
+
+            // 外层轮廓线 4px
+            drawPath(
+                path = facePath,
+                color = outlineColor.copy(alpha = currentAlpha),
+                style = Stroke(width = 4f)
             )
-            // 右太阳穴 → 右颧骨
-            cubicTo(
-                cx + w * 0.50f, cy - h * 0.18f,
-                cx + w * 0.50f, cy + h * 0.05f,
-                cx + w * 0.44f, cy + h * 0.22f
+            // 内层轮廓线 2px，半透明
+            drawPath(
+                path = facePath,
+                color = outlineColor.copy(alpha = currentAlpha * 0.4f),
+                style = Stroke(width = 2f)
             )
-            // 右下颌 → 下巴右侧
-            cubicTo(
-                cx + w * 0.34f, cy + h * 0.40f,
-                cx + w * 0.16f, cy + h * 0.48f,
-                cx, cy + h * 0.48f
+        } else {
+            // === 未检测到人脸：绘制默认引导椭圆 ===
+            val ovalWidth = canvasWidth * 0.52f
+            val ovalHeight = canvasHeight * 0.62f
+            val ovalLeft = (canvasWidth - ovalWidth) / 2f
+            val ovalTop = (canvasHeight - ovalHeight) / 2f
+
+            drawOval(
+                color = outlineColor.copy(alpha = currentAlpha),
+                topLeft = Offset(ovalLeft, ovalTop),
+                size = androidx.compose.ui.geometry.Size(ovalWidth, ovalHeight),
+                style = Stroke(width = 4f)
             )
-            // 下巴左侧 → 左下颌
-            cubicTo(
-                cx - w * 0.16f, cy + h * 0.48f,
-                cx - w * 0.34f, cy + h * 0.40f,
-                cx - w * 0.44f, cy + h * 0.22f
+            val inset = 10f
+            drawOval(
+                color = outlineColor.copy(alpha = currentAlpha * 0.4f),
+                topLeft = Offset(ovalLeft + inset, ovalTop + inset),
+                size = androidx.compose.ui.geometry.Size(ovalWidth - inset * 2f, ovalHeight - inset * 2f),
+                style = Stroke(width = 2f)
             )
-            // 左颧骨 → 左太阳穴
-            cubicTo(
-                cx - w * 0.50f, cy + h * 0.05f,
-                cx - w * 0.50f, cy - h * 0.18f,
-                cx - w * 0.38f, cy - h * 0.35f
-            )
-            close()
         }
-
-        // 绘制面部轮廓线
-        drawPath(
-            path = facePath,
-            color = outlineColor.copy(alpha = currentAlpha),
-            style = Stroke(width = 4f)
-        )
-
-        // 内层轮廓线（缩进，产生双层效果）
-        val innerPath = Path().apply {
-            val inset = 12f
-            val iw = w - inset * 2f
-            val ih = h - inset * 2f
-            moveTo(cx - iw * 0.38f, cy - ih * 0.35f)
-            cubicTo(
-                cx - iw * 0.15f, cy - ih * 0.48f,
-                cx + iw * 0.15f, cy - ih * 0.48f,
-                cx + iw * 0.38f, cy - ih * 0.35f
-            )
-            cubicTo(
-                cx + iw * 0.50f, cy - ih * 0.18f,
-                cx + iw * 0.50f, cy + ih * 0.05f,
-                cx + iw * 0.44f, cy + ih * 0.22f
-            )
-            cubicTo(
-                cx + iw * 0.34f, cy + ih * 0.40f,
-                cx + iw * 0.16f, cy + ih * 0.48f,
-                cx, cy + ih * 0.48f
-            )
-            cubicTo(
-                cx - iw * 0.16f, cy + ih * 0.48f,
-                cx - iw * 0.34f, cy + ih * 0.40f,
-                cx - iw * 0.44f, cy + ih * 0.22f
-            )
-            cubicTo(
-                cx - iw * 0.50f, cy + ih * 0.05f,
-                cx - iw * 0.50f, cy - ih * 0.18f,
-                cx - iw * 0.38f, cy - ih * 0.35f
-            )
-            close()
-        }
-        drawPath(
-            path = innerPath,
-            color = outlineColor.copy(alpha = currentAlpha * 0.4f),
-            style = Stroke(width = 2f)
-        )
     }
 }
 
