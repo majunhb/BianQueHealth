@@ -297,7 +297,7 @@ class MediaPipeFaceAnalyzer @Inject constructor(
         Timber.d("MediaPipeFaceAnalyzer: zone=%s organ=%s color=%s L=%.1f a=%.1f b=%.1f gloss=%.2f",
             zoneName, organ, complexion, lab.l, lab.a, lab.b, gloss)
 
-        ZoneAnalysis(
+        return ZoneAnalysis(
             name = zoneName,
             organ = organ,
             element = element,
