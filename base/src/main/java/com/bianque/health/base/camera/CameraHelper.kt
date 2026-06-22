@@ -5,10 +5,6 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.CaptureRequest
-import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -19,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
@@ -31,7 +28,7 @@ import java.util.concurrent.Executors
 object CameraHelper {
 
     private var cameraProvider: ProcessCameraProvider? = null
-    private var cameraExecutor: java.util.concurrent.ExecutorService = Executors.newSingleThreadExecutor()
+    private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var onFrameCallback: ((Bitmap) -> Unit)? = null
     private var isBound = false
 
@@ -82,43 +79,17 @@ object CameraHelper {
     ) {
         val provider = cameraProvider ?: return
 
-        // 预览 — 关闭美颜/滤镜，获取原始自然视图
-        val preview = Preview.Builder().build().also { preview ->
-            // 通过 Camera2Interop 强制关闭美颜、场景优化、人脸修饰
-            Camera2Interop.Extender(preview).apply {
-                setCaptureRequestOption(
-                    CaptureRequest.CONTROL_SCENE_MODE,
-                    CameraMetadata.CONTROL_SCENE_MODE_DISABLED
-                )
-                setCaptureRequestOption(
-                    CaptureRequest.CONTROL_MODE,
-                    CameraMetadata.CONTROL_MODE_OFF
-                )
-                // 关闭面部美化（厂商私有 key，部分机型有效）
-                setCaptureRequestOption(
-                    CaptureRequest.STATISTICS_FACE_DETECT_MODE,
-                    CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF
-                )
-            }
-            preview.setSurfaceProvider(previewView.surfaceProvider)
+        // 预览
+        val preview = Preview.Builder().build().also {
+            it.setSurfaceProvider(previewView.surfaceProvider)
         }
 
-        // 帧分析 — 同样关闭美颜
+        // 帧分析
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .build()
             .also { analysis ->
-                Camera2Interop.Extender(analysis).apply {
-                    setCaptureRequestOption(
-                        CaptureRequest.CONTROL_SCENE_MODE,
-                        CameraMetadata.CONTROL_SCENE_MODE_DISABLED
-                    )
-                    setCaptureRequestOption(
-                        CaptureRequest.CONTROL_MODE,
-                        CameraMetadata.CONTROL_MODE_OFF
-                    )
-                }
                 analysis.setAnalyzer(cameraExecutor) { imageProxy: ImageProxy ->
                     val bitmap = imageProxyToBitmap(imageProxy)
                     imageProxy.close()
