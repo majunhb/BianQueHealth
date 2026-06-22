@@ -28,5 +28,6 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.timber)
     implementation(libs.hilt.android)
+    implementation(libs.commons.math3)
     ksp(libs.hilt.compiler)
 }

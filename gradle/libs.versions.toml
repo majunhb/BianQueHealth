@@ -22,6 +22,7 @@ coil = "2.7.0"
 material3 = "1.2.1"
 sqlcipher = "4.5.4"
 security-crypto = "1.1.0-alpha06"
+commons-math3 = "3.6.1"
 
 [libraries]
 # Compose
@@ -86,6 +87,9 @@ coil = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 # SQLCipher (Room encryption)
 sqlcipher = { group = "net.zetetic", name = "android-database-sqlcipher", version.ref = "sqlcipher" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
+
+# Apache Commons Math (FFT/signal processing)
+commons-math3 = { group = "org.apache.commons", name = "commons-math3", version.ref = "commons-math3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

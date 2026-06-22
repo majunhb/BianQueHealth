@@ -1,5 +1,6 @@
 package com.bianque.health.tongue.data
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import kotlinx.coroutines.Dispatchers
@@ -14,14 +15,36 @@ import kotlin.math.min
  * 舌体分割器 — 基于设计文档的舌象处理流程。
  *
  * 流程：质量检测 → 色彩校正 → HSV分割 → 形态学后处理 → 中心区域校验
+ *
+ * 支持混合模式：优先使用 TFLite U-Net 模型，模型不可用时回退到 HSV 算法。
  */
 @Singleton
 class TongueSegmenter @Inject constructor() {
+
+    // ==================== 数据模型 ====================
 
     data class SegmentationResult(
         val maskedBitmap: Bitmap,
         val tongueAreaRatio: Float,
         val qualityScore: Float,
+        val qcMessage: String?
+    )
+
+    /**
+     * 混合分割结果，包含分割方法标记和置信度。
+     */
+    data class TongueSegmentationResult(
+        /** 分割后的舌体区域 mask 位图（白色=舌体，黑色=背景） */
+        val maskBitmap: Bitmap,
+        /** 分割方法：tflite 或 hsv */
+        val method: String,
+        /** 分割置信度 [0.0, 1.0] */
+        val confidence: Float,
+        /** 舌体区域占比 */
+        val tongueAreaRatio: Float,
+        /** 质量评分 */
+        val qualityScore: Float,
+        /** 质检消息 */
         val qcMessage: String?
     )
 
@@ -83,6 +106,139 @@ class TongueSegmenter @Inject constructor() {
             Timber.e(e, "TongueSegmenter: segmentation failed")
             bitmap
         }
+    }
+
+    /**
+     * 混合分割模式：优先使用 TFLite U-Net 模型，模型不可用时回退到 HSV 传统算法。
+     *
+     * 策略：
+     * 1. 尝试加载 TFLite 舌体分割模型（tongue_unet_segmenter.tflite）
+     * 2. 如果模型可用，运行 TFLite 推理生成 mask
+     * 3. 如果模型不可用或推理失败，回退到 HSV 颜色阈值分割
+     * 4. 返回的 [TongueSegmentationResult] 包含 method 字段标记实际使用的方法
+     *
+     * @param bitmap 输入舌象图像
+     * @param context Android Context，用于访问 assets 中的 TFLite 模型
+     * @return 分割结果，包含 mask 位图、方法标记和置信度
+     */
+    suspend fun segmentHybrid(bitmap: Bitmap, context: Context): TongueSegmentationResult =
+        withContext(Dispatchers.Default) {
+            try {
+                // 策略1: 尝试 TFLite 模型
+                val tfliteSegmenter = TongueSegmenterTFLite()
+                val tfliteMask = tfliteSegmenter.segment(bitmap, context)
+                tfliteSegmenter.close()
+
+                if (tfliteMask != null) {
+                    Timber.d("TongueSegmenter: hybrid mode - using TFLite model")
+                    val areaRatio = computeMaskAreaRatio(tfliteMask)
+                    return@withContext TongueSegmentationResult(
+                        maskBitmap = tfliteMask,
+                        method = "tflite",
+                        confidence = 0.9f,
+                        tongueAreaRatio = areaRatio,
+                        qualityScore = 1.0f,
+                        qcMessage = null
+                    )
+                }
+
+                // 策略2: 回退到 HSV 算法
+                Timber.d("TongueSegmenter: hybrid mode - TFLite unavailable, falling back to HSV")
+                val hsvResult = segmentHsvWithMask(bitmap)
+                return@withContext TongueSegmentationResult(
+                    maskBitmap = hsvResult.maskBitmap,
+                    method = "hsv",
+                    confidence = 0.6f,
+                    tongueAreaRatio = hsvResult.areaRatio,
+                    qualityScore = hsvResult.qualityScore,
+                    qcMessage = hsvResult.qcMessage
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "TongueSegmenter: hybrid segmentation failed")
+                // 最终回退：返回全黑 mask
+                val fallbackMask = Bitmap.createBitmap(
+                    bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888
+                )
+                fallbackMask.eraseColor(Color.BLACK)
+                TongueSegmentationResult(
+                    maskBitmap = fallbackMask,
+                    method = "hsv",
+                    confidence = 0f,
+                    tongueAreaRatio = 0f,
+                    qualityScore = 0f,
+                    qcMessage = "分割失败: ${e.message}"
+                )
+            }
+        }
+
+    /**
+     * HSV 分割并返回 mask 位图（用于混合模式的回退）。
+     */
+    private fun segmentHsvWithMask(bitmap: Bitmap): HsvMaskResult {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        val scale = (480f / maxOf(width, height)).coerceAtMost(1f)
+        val scaledWidth = (width * scale).toInt()
+        val scaledHeight = (height * scale).toInt()
+        val scaledBitmap = if (scale < 1f) {
+            Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+        } else bitmap
+
+        val pixels = IntArray(scaledWidth * scaledHeight)
+        scaledBitmap.getPixels(pixels, 0, scaledWidth, 0, 0, scaledWidth, scaledHeight)
+
+        val qc = performQualityCheck(pixels, scaledWidth, scaledHeight)
+        val correctedPixels = applyColorCorrection(pixels)
+        val mask = hsvSegmentation(correctedPixels, scaledWidth, scaledHeight)
+        val refinedMask = morphologicalProcess(mask, scaledWidth, scaledHeight)
+        val validatedMask = validateCenterRegion(refinedMask, scaledWidth, scaledHeight)
+
+        val maskPixels = IntArray(scaledWidth * scaledHeight)
+        var maskedCount = 0
+        for (i in maskPixels.indices) {
+            maskPixels[i] = if (validatedMask[i]) {
+                maskedCount++
+                Color.WHITE
+            } else {
+                Color.BLACK
+            }
+        }
+
+        val maskBitmap = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.ARGB_8888)
+        maskBitmap.setPixels(maskPixels, 0, scaledWidth, 0, 0, scaledWidth, scaledHeight)
+
+        val finalMask = if (scale < 1f) {
+            Bitmap.createScaledBitmap(maskBitmap, width, height, true)
+        } else maskBitmap
+
+        val areaRatio = maskedCount.toFloat() / (scaledWidth * scaledHeight)
+
+        return HsvMaskResult(
+            maskBitmap = finalMask,
+            areaRatio = areaRatio,
+            qualityScore = qc.qualityScore,
+            qcMessage = qc.message
+        )
+    }
+
+    private data class HsvMaskResult(
+        val maskBitmap: Bitmap,
+        val areaRatio: Float,
+        val qualityScore: Float,
+        val qcMessage: String?
+    )
+
+    /**
+     * 计算 mask 位图中白色像素（舌体区域）的占比。
+     */
+    private fun computeMaskAreaRatio(maskBitmap: Bitmap): Float {
+        val pixels = IntArray(maskBitmap.width * maskBitmap.height)
+        maskBitmap.getPixels(pixels, 0, maskBitmap.width, 0, 0, maskBitmap.width, maskBitmap.height)
+        val whiteCount = pixels.count { pixel ->
+            Color.red(pixel) > 127 && Color.green(pixel) > 127 && Color.blue(pixel) > 127
+        }
+        return whiteCount.toFloat() / pixels.size
     }
 
     /**

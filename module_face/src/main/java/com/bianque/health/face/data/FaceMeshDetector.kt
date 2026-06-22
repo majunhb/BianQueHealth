@@ -1,5 +1,6 @@
 package com.bianque.health.face.data
 
+import android.content.Context
 import android.graphics.Bitmap
 import com.bianque.health.face.data.Rect
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
@@ -26,7 +27,9 @@ import javax.inject.Singleton
  */
 @Singleton
 class FaceMeshDetector @Inject constructor(
-    private val colorAnalyzer: ColorAnalyzer
+    private val colorAnalyzer: ColorAnalyzer,
+    private val mediaPipeDetector: MediaPipeFaceDetector,
+    private val mediaPipeAnalyzer: MediaPipeFaceAnalyzer
 ) {
     private val detector = FaceDetection.getClient(
         FaceDetectorOptions.Builder()
@@ -224,5 +227,125 @@ class FaceMeshDetector @Inject constructor(
             issues.add("面色未见明显异常，气血调和")
         }
         return issues
+    }
+
+    /**
+     * 混合检测模式：优先使用 MediaPipe 468 关键点方案，失败时回退到 ML Kit。
+     *
+     * 这是推荐的检测入口，能够自动选择最优方案：
+     * 1. 如果 MediaPipe 模型可用且检测成功 → 使用 468 关键点进行高精度七区分析
+     * 2. 如果 MediaPipe 不可用或检测失败 → 回退到 ML Kit bounding box 五区分析
+     * 3. 保留 ML Kit 的完整分析逻辑作为后备方案
+     *
+     * @param context Android Context，用于 MediaPipe 模型加载
+     * @param bitmap 待检测的面部图像
+     * @return FaceDiagnosisResult 诊断结果
+     */
+    suspend fun detectHybrid(context: Context, bitmap: Bitmap): FaceDiagnosisResult = withContext(Dispatchers.Default) {
+        // 预处理：确保图像在合理尺寸范围内
+        val maxDim = 1024
+        val processedBitmap = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+            val scale = (maxDim.toFloat() / maxOf(bitmap.width, bitmap.height))
+            val newW = (bitmap.width * scale).toInt()
+            val newH = (bitmap.height * scale).toInt()
+            Bitmap.createScaledBitmap(bitmap, newW, newH, true)
+        } else bitmap
+
+        try {
+            // 第一步：尝试 MediaPipe 468 关键点检测
+            Timber.d("FaceMeshDetector: attempting MediaPipe detection (hybrid mode)")
+            val mpResult = mediaPipeDetector.detect(context, processedBitmap)
+
+            if (mpResult != null) {
+                Timber.d("FaceMeshDetector: MediaPipe detection succeeded, using 468-landmark analysis")
+
+                // 使用 MediaPipe 面部分析器进行七区分析
+                val analysisResult = mediaPipeAnalyzer.analyzeRegions(processedBitmap, mpResult)
+
+                // 转换为 FaceDiagnosisResult（保持与现有 API 兼容）
+                val regions = analysisResult.zones.map { zone ->
+                    FaceRegion(
+                        name = zone.name,
+                        color = zone.color,
+                        brightness = zone.brightness,
+                        redGreen = zone.redGreen,
+                        yellowBlue = zone.yellowBlue
+                    )
+                }
+
+                return@withContext FaceDiagnosisResult(
+                    overallComplexion = analysisResult.overallComplexion,
+                    glossLevel = analysisResult.glossLevel,
+                    regions = regions,
+                    abnormalities = analysisResult.abnormalities,
+                    confidence = analysisResult.confidence
+                )
+            }
+
+            // 第二步：MediaPipe 不可用，回退到 ML Kit
+            Timber.d("FaceMeshDetector: MediaPipe unavailable, falling back to ML Kit")
+            detectWithMlKit(processedBitmap)
+        } catch (e: Exception) {
+            Timber.e(e, "FaceMeshDetector: hybrid detection failed, falling back to ML Kit")
+            // 如果 MediaPipe 路径抛出异常，也回退到 ML Kit
+            try {
+                detectWithMlKit(processedBitmap)
+            } catch (mlKitException: Exception) {
+                Timber.e(mlKitException, "FaceMeshDetector: ML Kit fallback also failed")
+                FaceDiagnosisResult(
+                    overallComplexion = "分析失败",
+                    glossLevel = 0f,
+                    regions = emptyList(),
+                    abnormalities = listOf("面部分析失败: ${mlKitException.message}"),
+                    confidence = 0f
+                )
+            }
+        }
+    }
+
+    /**
+     * 纯 ML Kit 检测路径（内部方法，用于回退）。
+     */
+    private suspend fun detectWithMlKit(bitmap: Bitmap): FaceDiagnosisResult = withContext(Dispatchers.Default) {
+        val inputImage = InputImage.fromBitmap(bitmap, 0)
+        val faces = com.google.android.gms.tasks.Tasks.await(detector.process(inputImage))
+
+        Timber.d("FaceMeshDetector: ML Kit processed %dx%d, faces=%d", bitmap.width, bitmap.height, faces.size)
+
+        if (faces.isEmpty()) {
+            Timber.w("FaceMeshDetector: no face detected via ML Kit. Image size: %dx%d", bitmap.width, bitmap.height)
+            return@withContext FaceDiagnosisResult(
+                overallComplexion = "未检测到面部",
+                glossLevel = 0f,
+                regions = emptyList(),
+                abnormalities = listOf(
+                    "未检测到面部，请确保：",
+                    "1. 面部正对摄像头，距离30-50cm",
+                    "2. 光线均匀充足，避免逆光/背光",
+                    "3. 移除口罩、墨镜等遮挡物",
+                    "4. 避免头部倾斜或侧脸角度过大"
+                ),
+                confidence = 0f
+            )
+        }
+
+        val face = faces[0]
+        Timber.d("FaceMeshDetector: ML Kit face found, smileProb=%.2f, leftEye=%.2f, rightEye=%.2f",
+            face.smilingProbability ?: 0f,
+            face.leftEyeOpenProbability ?: 0f,
+            face.rightEyeOpenProbability ?: 0f)
+
+        val regions = analyzeFiveRegions(bitmap, face)
+        val overallComplexion = determineOverallComplexion(regions)
+        val glossLevel = computeOverallGloss(bitmap, face)
+        val abnormalities = detectAbnormalities(regions, face)
+
+        FaceDiagnosisResult(
+            overallComplexion = overallComplexion,
+            glossLevel = glossLevel,
+            regions = regions,
+            abnormalities = abnormalities,
+            confidence = computeConfidence(face)
+        )
     }
 }
