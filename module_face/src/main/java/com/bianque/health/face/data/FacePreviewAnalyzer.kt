@@ -385,17 +385,15 @@ class FacePreviewAnalyzer @Inject constructor(
      * @return 得分 0-1，如果未找到返回 1.0（默认睁眼）
      */
     private fun computeBlendshapeScore(
-        classifications: List<com.google.mediapipe.tasks.components.containers.Classifications>?,
+        categories: List<com.google.mediapipe.tasks.components.containers.Category>?,
         categoryName: String
     ): Float {
-        if (classifications == null) return 1f
+        if (categories == null) return 1f
         return try {
-            for (classification in classifications) {
-                for (category in classification.categories()) {
-                    if (category.categoryName() == categoryName) {
-                        // eyeBlink 值越高表示眼睛越闭合，需要反转
-                        return (1f - category.score()).coerceIn(0f, 1f)
-                    }
+            for (category in categories) {
+                if (category.categoryName() == categoryName) {
+                    // eyeBlink 值越高表示眼睛越闭合，需要反转
+                    return (1f - category.score()).coerceIn(0f, 1f)
                 }
             }
             1f

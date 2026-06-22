@@ -256,11 +256,9 @@ class MediaPipeFaceAnalyzer @Inject constructor(
         val imageHeight = faceResult.imageHeight
 
         // 将关键点转换为屏幕坐标
-        val points = landmarkIndices.mapNotNull { index ->
-            if (index < landmarks.size) {
-                val lm = landmarks[index]
-                PointF(lm.x() * imageWidth, lm.y() * imageHeight)
-            } else null
+        val points = landmarkIndices.filter { it < landmarks.size }.map { index ->
+            val lm = landmarks[index]
+            PointF(lm.x() * imageWidth, lm.y() * imageHeight)
         }
 
         if (points.isEmpty()) {
@@ -394,11 +392,9 @@ class MediaPipeFaceAnalyzer @Inject constructor(
         imageHeight: Int
     ): ColorAnalyzer.LabColor? {
         val landmarks = faceResult.landmarks
-        val points = indices.mapNotNull { index ->
-            if (index < landmarks.size) {
-                val lm = landmarks[index]
-                PointF(lm.x() * imageWidth, lm.y() * imageHeight)
-            } else null
+        val points = indices.filter { it < landmarks.size }.map { index ->
+            val lm = landmarks[index]
+            PointF(lm.x() * imageWidth, lm.y() * imageHeight)
         }
         if (points.isEmpty()) return null
 

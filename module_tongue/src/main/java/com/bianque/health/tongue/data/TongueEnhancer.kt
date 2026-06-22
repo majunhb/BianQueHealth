@@ -11,6 +11,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -312,9 +313,9 @@ class TongueEnhancer @Inject constructor() {
                 val v01 = tileLuts[d][a][pixelValue]
                 val v11 = tileLuts[d][b][pixelValue]
 
-                val top = v00 + ((v10 - v00) * weightX + 0.5f).toInt()
-                val bottom = v01 + ((v11 - v01) * weightX + 0.5f).toInt()
-                val interpolated = top + ((bottom - top) * weightY + 0.5f).toInt()
+                val top = v00 + ((v10 - v00).toFloat() * weightX + 0.5f).toInt()
+                val bottom = v01 + ((v11 - v01).toFloat() * weightX + 0.5f).toInt()
+                val interpolated = top + ((bottom - top).toFloat() * weightY + 0.5f).toInt()
 
                 result[idx] = interpolated.coerceIn(0, 255)
             }

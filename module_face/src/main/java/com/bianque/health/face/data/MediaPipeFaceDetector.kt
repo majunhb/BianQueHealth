@@ -4,12 +4,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
-import com.google.mediapipe.tasks.components.containers.Classifications
+import com.google.mediapipe.tasks.components.containers.Category
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
-import com.google.mediapipe.tasks.vision.core.BaseOptions
+import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
-import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerOptions
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 import timber.log.Timber
 import javax.inject.Inject
@@ -44,9 +43,9 @@ class MediaPipeFaceDetector @Inject constructor() {
      * @property rightEyebrow 右眉关键点
      * @property noseTip 鼻尖关键点
      * @property faceBlendshapes 表情融合形状分类结果（52 种表情权重）
-     * @property imageWidth 原始图像宽度
-     * @property imageHeight 原始图像高度
-     */
+         * @property imageWidth 原始图像宽度
+         * @property imageHeight 原始图像高度
+         */
     data class MediaPipeFaceResult(
         val landmarks: List<NormalizedLandmark>,
         val faceOval: List<NormalizedLandmark>,
@@ -56,7 +55,7 @@ class MediaPipeFaceDetector @Inject constructor() {
         val leftEyebrow: List<NormalizedLandmark>,
         val rightEyebrow: List<NormalizedLandmark>,
         val noseTip: NormalizedLandmark?,
-        val faceBlendshapes: List<Classifications>?,
+        val faceBlendshapes: List<Category>?,
         val imageWidth: Int,
         val imageHeight: Int
     )
@@ -136,7 +135,7 @@ class MediaPipeFaceDetector @Inject constructor() {
                 .setModelAssetPath(MODEL_ASSET_PATH)
                 .build()
 
-            val options = FaceLandmarkerOptions.builder()
+            val options = FaceLandmarker.FaceLandmarkerOptions.builder()
                 .setBaseOptions(baseOptions)
                 .setRunningMode(RunningMode.IMAGE)
                 .setNumFaces(1)
@@ -195,7 +194,7 @@ class MediaPipeFaceDetector @Inject constructor() {
             val rightEyebrow = extractLandmarks(landmarks, RIGHT_EYEBROW_INDICES)
             val noseTip = if (NOSE_TIP_INDEX < landmarks.size) landmarks[NOSE_TIP_INDEX] else null
 
-            val blendshapes = result.faceBlendshapes().takeIf { it.isNotEmpty() }?.get(0)
+            val blendshapes = result.faceBlendshapes().orElse(null)?.getOrNull(0)
 
             MediaPipeFaceResult(
                 landmarks = landmarks,
@@ -253,9 +252,7 @@ class MediaPipeFaceDetector @Inject constructor() {
         landmarks: List<NormalizedLandmark>,
         indices: IntArray
     ): List<NormalizedLandmark> {
-        return indices.mapNotNull { index ->
-            if (index < landmarks.size) landmarks[index] else null
-        }
+        return indices.filter { it < landmarks.size }.map { landmarks[it] }
     }
 
     /**
