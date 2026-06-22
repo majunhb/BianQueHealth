@@ -390,189 +390,176 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
     val thinColor = color.copy(alpha = alpha * 0.55f)
     val strokeWidth = 3.5f
     val thinStroke = 2f
+    val hairlineStroke = 1.5f
 
     // 面部居中，占画布宽度的 50%，高度 62%
     val faceW = canvasWidth * 0.50f
     val faceH = canvasHeight * 0.62f
     val cx = canvasWidth / 2f
-    val cy = canvasHeight * 0.48f  // 面部中心略偏上
-    val left = cx - faceW / 2f
+    val cy = canvasHeight * 0.48f
     val top = cy - faceH / 2f
-    val right = cx + faceW / 2f
     val bottom = cy + faceH / 2f
 
-    // 控制点偏移
-    val templeInset = faceW * 0.18f
-    val cheekWidth = faceW * 0.08f
-    val jawInset = faceW * 0.22f
-    val chinInset = faceW * 0.30f
-    val chinY = bottom - faceH * 0.08f
-
-    // === 1. 面部外轮廓（贝塞尔曲线） ===
+    // === 1. 面部外轮廓（多边形近似椭圆） ===
     val facePath = Path().apply {
-        // 从头顶正中开始
-        moveTo(cx, top)
-        // 右额头 → 太阳穴
-        cubicTo(
-            cx + faceW * 0.35f, top,
-            cx + faceW * 0.48f, top + faceH * 0.08f,
-            right - templeInset, top + faceH * 0.13f
-        )
-        // 太阳穴 → 颧骨（最宽处）
-        cubicTo(
-            right, top + faceH * 0.22f,
-            right + cheekWidth, top + faceH * 0.38f,
-            right + cheekWidth * 0.6f, top + faceH * 0.48f
-        )
-        // 颧骨 → 下颌线
-        cubicTo(
-            right, top + faceH * 0.58f,
-            cx + jawInset, top + faceH * 0.72f,
-            cx + chinInset, chinY
-        )
-        // 下巴尖
-        cubicTo(
-            cx + chinInset * 0.5f, bottom,
-            cx, bottom + faceH * 0.03f,
-            cx, bottom + faceH * 0.03f
-        )
-        // 右半→左半（对称，通过 cx 镜像）
-        moveTo(cx, top)
-        cubicTo(
-            cx - faceW * 0.35f, top,
-            cx - faceW * 0.48f, top + faceH * 0.08f,
-            left + templeInset, top + faceH * 0.13f
-        )
-        cubicTo(
-            left, top + faceH * 0.22f,
-            left - cheekWidth, top + faceH * 0.38f,
-            left - cheekWidth * 0.6f, top + faceH * 0.48f
-        )
-        cubicTo(
-            left, top + faceH * 0.58f,
-            cx - jawInset, top + faceH * 0.72f,
-            cx - chinInset, chinY
-        )
-        cubicTo(
-            cx - chinInset * 0.5f, bottom,
-            cx, bottom + faceH * 0.03f,
-            cx, bottom + faceH * 0.03f
-        )
+        val hSegments = 24  // 水平分段数，越多越圆滑
+        // 右半面轮廓（从头顶→右太阳穴→右颧骨→右下颌→下巴）
+        for (i in 0..hSegments) {
+            val t = i.toFloat() / hSegments
+            // 使用椭圆参数方程 + 下巴收窄
+            val angle = Math.PI * t  // 0 → π (从头顶到下巴)
+            val rx = faceW / 2f
+            val ry = faceH / 2f
+            // 两侧加宽：太阳穴和颧骨区域微凸
+            val widenFactor = 1f + 0.06f * Math.sin(t * Math.PI * 0.85f).toFloat()
+            val x = cx + (rx * widenFactor * Math.sin(angle)).toFloat()
+            // 下巴区域收窄
+            val narrowFactor = if (t > 0.65f) 1f - (t - 0.65f) * 0.7f else 1f
+            val y = top + ry + (ry * (-Math.cos(angle)).toFloat()) * narrowFactor
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
     }
     drawPath(facePath, lineColor, style = Stroke(width = strokeWidth))
 
-    // === 2. 眉毛 — 两条优雅的拱形弧线 ===
+    // 左半面轮廓（对称）
+    val leftFacePath = Path().apply {
+        val hSegments = 24
+        for (i in 0..hSegments) {
+            val t = i.toFloat() / hSegments
+            val angle = Math.PI * t
+            val rx = faceW / 2f
+            val ry = faceH / 2f
+            val widenFactor = 1f + 0.06f * Math.sin(t * Math.PI * 0.85f).toFloat()
+            val x = cx - (rx * widenFactor * Math.sin(angle)).toFloat()
+            val narrowFactor = if (t > 0.65f) 1f - (t - 0.65f) * 0.7f else 1f
+            val y = top + ry + (ry * (-Math.cos(angle)).toFloat()) * narrowFactor
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+    }
+    drawPath(leftFacePath, lineColor, style = Stroke(width = strokeWidth))
+
+    // === 2. 眉毛 — 两条拱形弧线 ===
     val browY = top + faceH * 0.22f
     val browHalfW = faceW * 0.22f
     val browArch = faceH * 0.04f
 
-    // 右眉
     drawPath(Path().apply {
-        moveTo(cx + faceW * 0.08f, browY + browArch * 0.3f)
-        quadraticTo(
-            cx + browHalfW, browY - browArch,
-            cx + browHalfW + faceW * 0.08f, browY + browArch * 0.2f
-        )
+        // 右眉（用8个线段近似拱形）
+        val segs = 8
+        for (i in 0..segs) {
+            val t = i.toFloat() / segs
+            val x = cx + faceW * 0.08f + (browHalfW + faceW * 0.08f - faceW * 0.08f) * t
+            // 抛物线拱形：y = a*(t-0.5)^2 + c
+            val y = browY + browArch * 0.3f - browArch * 1.3f * 4f * (t - 0.5f) * (t - 0.5f)
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
     }, thinColor, style = Stroke(width = thinStroke))
 
-    // 左眉
     drawPath(Path().apply {
-        moveTo(cx - faceW * 0.08f, browY + browArch * 0.3f)
-        quadraticTo(
-            cx - browHalfW, browY - browArch,
-            cx - browHalfW - faceW * 0.08f, browY + browArch * 0.2f
-        )
+        val segs = 8
+        for (i in 0..segs) {
+            val t = i.toFloat() / segs
+            val x = cx - faceW * 0.08f - (browHalfW + faceW * 0.08f - faceW * 0.08f) * t
+            val y = browY + browArch * 0.3f - browArch * 1.3f * 4f * (t - 0.5f) * (t - 0.5f)
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
     }, thinColor, style = Stroke(width = thinStroke))
 
-    // === 3. 眼睛 — 闭眼状态的杏仁形弧线 ===
+    // === 3. 眼睛 — 闭眼杏仁形弧线 ===
     val eyeY = top + faceH * 0.32f
     val eyeHalfW = faceW * 0.16f
     val eyeArch = faceH * 0.025f
 
-    // 右眼（上眼睑 + 下眼睑，闭眼效果）
-    drawPath(Path().apply {
-        // 上眼睑弧线
-        moveTo(cx + eyeHalfW * 0.4f, eyeY - eyeArch * 0.3f)
-        quadraticTo(cx + eyeHalfW, eyeY - eyeArch, cx + eyeHalfW * 1.45f, eyeY)
-        // 下眼睑弧线（闭眼）
-        quadraticTo(cx + eyeHalfW, eyeY + eyeArch * 0.5f, cx + eyeHalfW * 0.4f, eyeY + eyeArch * 0.2f)
-    }, thinColor, style = Stroke(width = thinStroke))
-
-    // 左眼
-    drawPath(Path().apply {
-        moveTo(cx - eyeHalfW * 0.4f, eyeY - eyeArch * 0.3f)
-        quadraticTo(cx - eyeHalfW, eyeY - eyeArch, cx - eyeHalfW * 1.45f, eyeY)
-        quadraticTo(cx - eyeHalfW, eyeY + eyeArch * 0.5f, cx - eyeHalfW * 0.4f, eyeY + eyeArch * 0.2f)
-    }, thinColor, style = Stroke(width = thinStroke))
+    fun drawEye(centerX: Float) {
+        // 上眼睑
+        drawPath(Path().apply {
+            val segs = 10
+            for (i in 0..segs) {
+                val t = i.toFloat() / segs
+                val x = centerX + (eyeHalfW * 0.4f + (eyeHalfW * 1.45f - eyeHalfW * 0.4f) * t)
+                val y = eyeY - eyeArch * 0.3f - eyeArch * 0.7f * 4f * (t - 0.5f) * (t - 0.5f)
+                if (i == 0) moveTo(x, y) else lineTo(x, y)
+            }
+        }, thinColor, style = Stroke(width = thinStroke))
+        // 下眼睑
+        drawPath(Path().apply {
+            val segs = 10
+            for (i in 0..segs) {
+                val t = i.toFloat() / segs
+                val x = centerX + (eyeHalfW * 0.4f + (eyeHalfW * 1.45f - eyeHalfW * 0.4f) * t)
+                val y = eyeY + eyeArch * 0.2f + eyeArch * 0.3f * 4f * (t - 0.5f) * (t - 0.5f)
+                if (i == 0) moveTo(x, y) else lineTo(x, y)
+            }
+        }, thinColor, style = Stroke(width = thinStroke))
+    }
+    drawEye(cx + eyeHalfW * 0.05f)  // 右眼
+    drawEye(cx - eyeHalfW * 0.05f)  // 左眼
 
     // === 4. 鼻子 — 极简鼻梁线 + 鼻翼 ===
     val noseTop = top + faceH * 0.38f
     val noseBottom = top + faceH * 0.52f
     val noseHalfW = faceW * 0.07f
 
-    // 鼻梁线（从眉心到鼻尖）
     drawPath(Path().apply {
         moveTo(cx, noseTop)
         lineTo(cx, noseBottom)
     }, thinColor, style = Stroke(width = thinStroke))
 
-    // 右鼻翼
     drawPath(Path().apply {
         moveTo(cx, noseBottom - faceH * 0.01f)
-        quadraticTo(cx + noseHalfW * 1.5f, noseBottom - faceH * 0.005f, cx + noseHalfW * 1.2f, noseBottom + faceH * 0.015f)
+        lineTo(cx + noseHalfW, noseBottom - faceH * 0.005f)
+        lineTo(cx + noseHalfW * 0.8f, noseBottom + faceH * 0.015f)
     }, thinColor, style = Stroke(width = thinStroke))
 
-    // 左鼻翼
     drawPath(Path().apply {
         moveTo(cx, noseBottom - faceH * 0.01f)
-        quadraticTo(cx - noseHalfW * 1.5f, noseBottom - faceH * 0.005f, cx - noseHalfW * 1.2f, noseBottom + faceH * 0.015f)
+        lineTo(cx - noseHalfW, noseBottom - faceH * 0.005f)
+        lineTo(cx - noseHalfW * 0.8f, noseBottom + faceH * 0.015f)
     }, thinColor, style = Stroke(width = thinStroke))
 
     // === 5. 嘴唇 ===
     val mouthY = top + faceH * 0.60f
     val mouthHalfW = faceW * 0.12f
 
-    // 上唇（M 形）
+    // 上唇（M形）
     drawPath(Path().apply {
         moveTo(cx - mouthHalfW, mouthY)
-        quadraticTo(cx - mouthHalfW * 0.5f, mouthY - faceH * 0.01f, cx - mouthHalfW * 0.15f, mouthY - faceH * 0.02f)
-        quadraticTo(cx, mouthY - faceH * 0.03f, cx + mouthHalfW * 0.15f, mouthY - faceH * 0.02f)
-        quadraticTo(cx + mouthHalfW * 0.5f, mouthY - faceH * 0.01f, cx + mouthHalfW, mouthY)
+        lineTo(cx - mouthHalfW * 0.4f, mouthY - faceH * 0.012f)
+        lineTo(cx, mouthY - faceH * 0.028f)
+        lineTo(cx + mouthHalfW * 0.4f, mouthY - faceH * 0.012f)
+        lineTo(cx + mouthHalfW, mouthY)
     }, thinColor, style = Stroke(width = thinStroke))
 
     // 下唇
     drawPath(Path().apply {
         moveTo(cx - mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
-        quadraticTo(cx, mouthY + faceH * 0.03f, cx + mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
+        lineTo(cx - mouthHalfW * 0.4f, mouthY + faceH * 0.022f)
+        lineTo(cx, mouthY + faceH * 0.028f)
+        lineTo(cx + mouthHalfW * 0.4f, mouthY + faceH * 0.022f)
+        lineTo(cx + mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
     }, thinColor, style = Stroke(width = thinStroke))
 
     // 唇下阴影
     drawPath(Path().apply {
-        moveTo(cx - faceW * 0.04f, mouthY + faceH * 0.04f)
-        quadraticTo(cx, mouthY + faceH * 0.05f, cx + faceW * 0.04f, mouthY + faceH * 0.04f)
-    }, thinColor.copy(alpha = thinColor.alpha * 0.5f), style = Stroke(width = 1.5f))
+        moveTo(cx - faceW * 0.04f, mouthY + faceH * 0.045f)
+        lineTo(cx, mouthY + faceH * 0.05f)
+        lineTo(cx + faceW * 0.04f, mouthY + faceH * 0.045f)
+    }, thinColor.copy(alpha = thinColor.alpha * 0.5f), style = Stroke(width = hairlineStroke))
 
     // === 6. 脸颊轮廓线（颧骨下方阴影线） ===
     val cheekLineY = top + faceH * 0.50f
-    val cheekLineHalfW = faceW * 0.10f
 
-    // 右脸颊
     drawPath(Path().apply {
         moveTo(cx + faceW * 0.28f, cheekLineY - faceH * 0.02f)
-        quadraticTo(
-            cx + cheekLineHalfW + faceW * 0.06f, cheekLineY,
-            cx + cheekLineHalfW * 0.5f, cheekLineY + faceH * 0.03f
-        )
-    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f))
+        lineTo(cx + faceW * 0.16f, cheekLineY)
+        lineTo(cx + faceW * 0.06f, cheekLineY + faceH * 0.03f)
+    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = hairlineStroke))
 
-    // 左脸颊
     drawPath(Path().apply {
         moveTo(cx - faceW * 0.28f, cheekLineY - faceH * 0.02f)
-        quadraticTo(
-            cx - cheekLineHalfW - faceW * 0.06f, cheekLineY,
-            cx - cheekLineHalfW * 0.5f, cheekLineY + faceH * 0.03f
-        )
-    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f))
+        lineTo(cx - faceW * 0.16f, cheekLineY)
+        lineTo(cx - faceW * 0.06f, cheekLineY + faceH * 0.03f)
+    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = hairlineStroke))
 }
 
 @Composable
