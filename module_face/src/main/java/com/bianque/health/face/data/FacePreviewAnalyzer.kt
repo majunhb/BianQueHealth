@@ -13,7 +13,6 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.minOf
 import kotlin.math.sqrt
 import timber.log.Timber
 import javax.inject.Inject
@@ -446,7 +445,7 @@ class FacePreviewAnalyzer @Inject constructor(
 
         val cx = imageWidth / 2f
         val cy = imageHeight * circleCenterYRatio
-        val radius = minOf(imageWidth, imageHeight) * circleRadiusRatio
+        val radius = Math.min(imageWidth, imageHeight).toFloat() * circleRadiusRatio
 
         // 允许 10% 的点在圆外（容忍下颌等边缘）
         val maxOutside = (contourPoints.size * 0.1f).toInt().coerceAtLeast(1)
