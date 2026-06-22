@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -297,7 +298,7 @@ fun FaceScanScreen(
  *
  * 对标 dlib 68点方案：ML Kit 的 FaceContour.FACE 提供 36 个轮廓点，
  * 覆盖额头、太阳穴、颧骨、下颌线，形成贴合真实人脸形状的闭合曲线。
- * 检测到人脸 → 轮廓线变绿，自动扫描；未检测到 → 轮廓线灰白脉冲。
+ * 检测到人脸 → 轮廓线变绿，自动扫描；未检测到 → 显示极简面部线稿引导图。
  */
 @Composable
 private fun FaceOutlineOverlay(
@@ -363,27 +364,216 @@ private fun FaceOutlineOverlay(
                 style = Stroke(width = 2f)
             )
         } else {
-            // === 未检测到人脸：绘制默认引导椭圆 ===
-            val ovalWidth = canvasWidth * 0.52f
-            val ovalHeight = canvasHeight * 0.62f
-            val ovalLeft = (canvasWidth - ovalWidth) / 2f
-            val ovalTop = (canvasHeight - ovalHeight) / 2f
-
-            drawOval(
-                color = outlineColor.copy(alpha = currentAlpha),
-                topLeft = Offset(ovalLeft, ovalTop),
-                size = androidx.compose.ui.geometry.Size(ovalWidth, ovalHeight),
-                style = Stroke(width = 4f)
-            )
-            val inset = 10f
-            drawOval(
-                color = outlineColor.copy(alpha = currentAlpha * 0.4f),
-                topLeft = Offset(ovalLeft + inset, ovalTop + inset),
-                size = androidx.compose.ui.geometry.Size(ovalWidth - inset * 2f, ovalHeight - inset * 2f),
-                style = Stroke(width = 2f)
+            // === 未检测到人脸：绘制极简面部线稿引导图 ===
+            drawFaceGuideOutline(
+                canvasWidth = canvasWidth,
+                canvasHeight = canvasHeight,
+                color = outlineColor,
+                alpha = currentAlpha
             )
         }
     }
+}
+
+/**
+ * 绘制极简面部线稿引导图 — 参考化妆师面部分区模板风格。
+ *
+ * 包含：椭圆形面部轮廓、眉毛、闭眼、鼻梁、嘴唇、脸颊轮廓线。
+ * 用户将真实人脸对准此轮廓即可开始扫描。
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutline(
+    canvasWidth: Float,
+    canvasHeight: Float,
+    color: Color,
+    alpha: Float
+) {
+    val lineColor = color.copy(alpha = alpha)
+    val thinColor = color.copy(alpha = alpha * 0.55f)
+    val strokeWidth = 3.5f
+    val thinStroke = 2f
+
+    // 面部居中，占画布宽度的 50%，高度 62%
+    val faceW = canvasWidth * 0.50f
+    val faceH = canvasHeight * 0.62f
+    val cx = canvasWidth / 2f
+    val cy = canvasHeight * 0.48f  // 面部中心略偏上
+    val left = cx - faceW / 2f
+    val top = cy - faceH / 2f
+    val right = cx + faceW / 2f
+    val bottom = cy + faceH / 2f
+
+    // 控制点偏移
+    val templeInset = faceW * 0.18f
+    val cheekWidth = faceW * 0.08f
+    val jawInset = faceW * 0.22f
+    val chinInset = faceW * 0.30f
+    val chinY = bottom - faceH * 0.08f
+
+    // === 1. 面部外轮廓（贝塞尔曲线） ===
+    val facePath = Path().apply {
+        // 从头顶正中开始
+        moveTo(cx, top)
+        // 右额头 → 太阳穴
+        cubicTo(
+            cx + faceW * 0.35f, top,
+            cx + faceW * 0.48f, top + faceH * 0.08f,
+            right - templeInset, top + faceH * 0.13f
+        )
+        // 太阳穴 → 颧骨（最宽处）
+        cubicTo(
+            right, top + faceH * 0.22f,
+            right + cheekWidth, top + faceH * 0.38f,
+            right + cheekWidth * 0.6f, top + faceH * 0.48f
+        )
+        // 颧骨 → 下颌线
+        cubicTo(
+            right, top + faceH * 0.58f,
+            cx + jawInset, top + faceH * 0.72f,
+            cx + chinInset, chinY
+        )
+        // 下巴尖
+        cubicTo(
+            cx + chinInset * 0.5f, bottom,
+            cx, bottom + faceH * 0.03f,
+            cx, bottom + faceH * 0.03f
+        )
+        // 右半→左半（对称，通过 cx 镜像）
+        moveTo(cx, top)
+        cubicTo(
+            cx - faceW * 0.35f, top,
+            cx - faceW * 0.48f, top + faceH * 0.08f,
+            left + templeInset, top + faceH * 0.13f
+        )
+        cubicTo(
+            left, top + faceH * 0.22f,
+            left - cheekWidth, top + faceH * 0.38f,
+            left - cheekWidth * 0.6f, top + faceH * 0.48f
+        )
+        cubicTo(
+            left, top + faceH * 0.58f,
+            cx - jawInset, top + faceH * 0.72f,
+            cx - chinInset, chinY
+        )
+        cubicTo(
+            cx - chinInset * 0.5f, bottom,
+            cx, bottom + faceH * 0.03f,
+            cx, bottom + faceH * 0.03f
+        )
+    }
+    drawPath(facePath, lineColor, style = Stroke(width = strokeWidth))
+
+    // === 2. 眉毛 — 两条优雅的拱形弧线 ===
+    val browY = top + faceH * 0.22f
+    val browHalfW = faceW * 0.22f
+    val browArch = faceH * 0.04f
+
+    // 右眉
+    drawPath(Path().apply {
+        moveTo(cx + faceW * 0.08f, browY + browArch * 0.3f)
+        quadraticTo(
+            cx + browHalfW, browY - browArch,
+            cx + browHalfW + faceW * 0.08f, browY + browArch * 0.2f
+        )
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 左眉
+    drawPath(Path().apply {
+        moveTo(cx - faceW * 0.08f, browY + browArch * 0.3f)
+        quadraticTo(
+            cx - browHalfW, browY - browArch,
+            cx - browHalfW - faceW * 0.08f, browY + browArch * 0.2f
+        )
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // === 3. 眼睛 — 闭眼状态的杏仁形弧线 ===
+    val eyeY = top + faceH * 0.32f
+    val eyeHalfW = faceW * 0.16f
+    val eyeArch = faceH * 0.025f
+
+    // 右眼（上眼睑 + 下眼睑，闭眼效果）
+    drawPath(Path().apply {
+        // 上眼睑弧线
+        moveTo(cx + eyeHalfW * 0.4f, eyeY - eyeArch * 0.3f)
+        quadraticTo(cx + eyeHalfW, eyeY - eyeArch, cx + eyeHalfW * 1.45f, eyeY)
+        // 下眼睑弧线（闭眼）
+        quadraticTo(cx + eyeHalfW, eyeY + eyeArch * 0.5f, cx + eyeHalfW * 0.4f, eyeY + eyeArch * 0.2f)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 左眼
+    drawPath(Path().apply {
+        moveTo(cx - eyeHalfW * 0.4f, eyeY - eyeArch * 0.3f)
+        quadraticTo(cx - eyeHalfW, eyeY - eyeArch, cx - eyeHalfW * 1.45f, eyeY)
+        quadraticTo(cx - eyeHalfW, eyeY + eyeArch * 0.5f, cx - eyeHalfW * 0.4f, eyeY + eyeArch * 0.2f)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // === 4. 鼻子 — 极简鼻梁线 + 鼻翼 ===
+    val noseTop = top + faceH * 0.38f
+    val noseBottom = top + faceH * 0.52f
+    val noseHalfW = faceW * 0.07f
+
+    // 鼻梁线（从眉心到鼻尖）
+    drawPath(Path().apply {
+        moveTo(cx, noseTop)
+        lineTo(cx, noseBottom)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 右鼻翼
+    drawPath(Path().apply {
+        moveTo(cx, noseBottom - faceH * 0.01f)
+        quadraticTo(cx + noseHalfW * 1.5f, noseBottom - faceH * 0.005f, cx + noseHalfW * 1.2f, noseBottom + faceH * 0.015f)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 左鼻翼
+    drawPath(Path().apply {
+        moveTo(cx, noseBottom - faceH * 0.01f)
+        quadraticTo(cx - noseHalfW * 1.5f, noseBottom - faceH * 0.005f, cx - noseHalfW * 1.2f, noseBottom + faceH * 0.015f)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // === 5. 嘴唇 ===
+    val mouthY = top + faceH * 0.60f
+    val mouthHalfW = faceW * 0.12f
+
+    // 上唇（M 形）
+    drawPath(Path().apply {
+        moveTo(cx - mouthHalfW, mouthY)
+        quadraticTo(cx - mouthHalfW * 0.5f, mouthY - faceH * 0.01f, cx - mouthHalfW * 0.15f, mouthY - faceH * 0.02f)
+        quadraticTo(cx, mouthY - faceH * 0.03f, cx + mouthHalfW * 0.15f, mouthY - faceH * 0.02f)
+        quadraticTo(cx + mouthHalfW * 0.5f, mouthY - faceH * 0.01f, cx + mouthHalfW, mouthY)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 下唇
+    drawPath(Path().apply {
+        moveTo(cx - mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
+        quadraticTo(cx, mouthY + faceH * 0.03f, cx + mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
+    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 唇下阴影
+    drawPath(Path().apply {
+        moveTo(cx - faceW * 0.04f, mouthY + faceH * 0.04f)
+        quadraticTo(cx, mouthY + faceH * 0.05f, cx + faceW * 0.04f, mouthY + faceH * 0.04f)
+    }, thinColor.copy(alpha = thinColor.alpha * 0.5f), style = Stroke(width = 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // === 6. 脸颊轮廓线（颧骨下方阴影线） ===
+    val cheekLineY = top + faceH * 0.50f
+    val cheekLineHalfW = faceW * 0.10f
+
+    // 右脸颊
+    drawPath(Path().apply {
+        moveTo(cx + faceW * 0.28f, cheekLineY - faceH * 0.02f)
+        quadraticTo(
+            cx + cheekLineHalfW + faceW * 0.06f, cheekLineY,
+            cx + cheekLineHalfW * 0.5f, cheekLineY + faceH * 0.03f
+        )
+    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+
+    // 左脸颊
+    drawPath(Path().apply {
+        moveTo(cx - faceW * 0.28f, cheekLineY - faceH * 0.02f)
+        quadraticTo(
+            cx - cheekLineHalfW - faceW * 0.06f, cheekLineY,
+            cx - cheekLineHalfW * 0.5f, cheekLineY + faceH * 0.03f
+        )
+    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
 }
 
 @Composable
