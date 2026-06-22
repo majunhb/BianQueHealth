@@ -26,7 +26,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -474,7 +473,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
             cx + browHalfW, browY - browArch,
             cx + browHalfW + faceW * 0.08f, browY + browArch * 0.2f
         )
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // 左眉
     drawPath(Path().apply {
@@ -483,7 +482,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
             cx - browHalfW, browY - browArch,
             cx - browHalfW - faceW * 0.08f, browY + browArch * 0.2f
         )
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // === 3. 眼睛 — 闭眼状态的杏仁形弧线 ===
     val eyeY = top + faceH * 0.32f
@@ -497,14 +496,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
         quadraticTo(cx + eyeHalfW, eyeY - eyeArch, cx + eyeHalfW * 1.45f, eyeY)
         // 下眼睑弧线（闭眼）
         quadraticTo(cx + eyeHalfW, eyeY + eyeArch * 0.5f, cx + eyeHalfW * 0.4f, eyeY + eyeArch * 0.2f)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // 左眼
     drawPath(Path().apply {
         moveTo(cx - eyeHalfW * 0.4f, eyeY - eyeArch * 0.3f)
         quadraticTo(cx - eyeHalfW, eyeY - eyeArch, cx - eyeHalfW * 1.45f, eyeY)
         quadraticTo(cx - eyeHalfW, eyeY + eyeArch * 0.5f, cx - eyeHalfW * 0.4f, eyeY + eyeArch * 0.2f)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // === 4. 鼻子 — 极简鼻梁线 + 鼻翼 ===
     val noseTop = top + faceH * 0.38f
@@ -515,19 +514,19 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
     drawPath(Path().apply {
         moveTo(cx, noseTop)
         lineTo(cx, noseBottom)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // 右鼻翼
     drawPath(Path().apply {
         moveTo(cx, noseBottom - faceH * 0.01f)
         quadraticTo(cx + noseHalfW * 1.5f, noseBottom - faceH * 0.005f, cx + noseHalfW * 1.2f, noseBottom + faceH * 0.015f)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // 左鼻翼
     drawPath(Path().apply {
         moveTo(cx, noseBottom - faceH * 0.01f)
         quadraticTo(cx - noseHalfW * 1.5f, noseBottom - faceH * 0.005f, cx - noseHalfW * 1.2f, noseBottom + faceH * 0.015f)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // === 5. 嘴唇 ===
     val mouthY = top + faceH * 0.60f
@@ -539,19 +538,19 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
         quadraticTo(cx - mouthHalfW * 0.5f, mouthY - faceH * 0.01f, cx - mouthHalfW * 0.15f, mouthY - faceH * 0.02f)
         quadraticTo(cx, mouthY - faceH * 0.03f, cx + mouthHalfW * 0.15f, mouthY - faceH * 0.02f)
         quadraticTo(cx + mouthHalfW * 0.5f, mouthY - faceH * 0.01f, cx + mouthHalfW, mouthY)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // 下唇
     drawPath(Path().apply {
         moveTo(cx - mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
         quadraticTo(cx, mouthY + faceH * 0.03f, cx + mouthHalfW * 0.85f, mouthY + faceH * 0.005f)
-    }, thinColor, style = Stroke(width = thinStroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor, style = Stroke(width = thinStroke))
 
     // 唇下阴影
     drawPath(Path().apply {
         moveTo(cx - faceW * 0.04f, mouthY + faceH * 0.04f)
         quadraticTo(cx, mouthY + faceH * 0.05f, cx + faceW * 0.04f, mouthY + faceH * 0.04f)
-    }, thinColor.copy(alpha = thinColor.alpha * 0.5f), style = Stroke(width = 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor.copy(alpha = thinColor.alpha * 0.5f), style = Stroke(width = 1.5f))
 
     // === 6. 脸颊轮廓线（颧骨下方阴影线） ===
     val cheekLineY = top + faceH * 0.50f
@@ -564,7 +563,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
             cx + cheekLineHalfW + faceW * 0.06f, cheekLineY,
             cx + cheekLineHalfW * 0.5f, cheekLineY + faceH * 0.03f
         )
-    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f))
 
     // 左脸颊
     drawPath(Path().apply {
@@ -573,7 +572,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFaceGuideOutlin
             cx - cheekLineHalfW - faceW * 0.06f, cheekLineY,
             cx - cheekLineHalfW * 0.5f, cheekLineY + faceH * 0.03f
         )
-    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }, thinColor.copy(alpha = thinColor.alpha * 0.6f), style = Stroke(width = 1.5f))
 }
 
 @Composable
