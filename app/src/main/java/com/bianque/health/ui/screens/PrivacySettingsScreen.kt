@@ -232,7 +232,7 @@ fun PrivacySettingsScreen(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Danger40)
             ) {
-                Icon(Icons.Default.GppBad, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.privacy_revoke_consent),
