@@ -34,6 +34,11 @@
     <string name="face_guide_text">请将面部置于框内</string>
     <string name="face_detecting">正在定位</string>
     <string name="face_ready">定位成功</string>
+    <string name="face_lighting_tip">☀ 请在明亮均匀的自然光下扫描</string>
+    <string name="face_distance_tip">↔ 保持一臂之距，面部完整可见</string>
+    <string name="face_pose_tip">⟳ 正对摄像头，双眼平视，勿遮挡</string>
+    <string name="face_capture_failed">识别失败，请调整光线与姿势后重试</string>
+    <string name="face_lighting_low">光线不足，请移至明亮处</string>
 
     <!-- 舌诊 -->
     <string name="tongue_scan_title">舌象采集</string>

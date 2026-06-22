@@ -98,15 +98,22 @@ class FaceScanViewModel @Inject constructor(
                     faceMeshDetector.detect(bitmap)
                 }
                 if (preCheck.overallComplexion == "未检测到面部") {
-                    captureCooldownUntil = System.currentTimeMillis() + 3000
+                    captureCooldownUntil = System.currentTimeMillis() + 5000 // 延长冷却到5秒，给用户调整时间
+                    // 质量分兜底：给出精确的失败原因和可执行建议
+                    val advice = when {
+                        preCheck.confidence < 0.3f -> "光线不足或面部遮挡，请移至明亮处并确保面部完整可见"
+                        preCheck.regions.isEmpty() -> "面部特征不完整，请正对摄像头并保持适当距离"
+                        else -> "识别失败，请调整光线与姿势后重试"
+                    }
                     _uiState.value = _uiState.value.copy(
                         isScanning = false,
                         detectionState = DetectionState.POOR_QUALITY,
-                        statusMessage = "未识别到面部，请正对摄像头并保持光线充足"
+                        statusMessage = advice
                     )
                     return@launch
                 }
 
+                // 扫描动画 2 秒
                 delay(2000)
                 _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
 
@@ -115,12 +122,12 @@ class FaceScanViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isAnalyzing = false, diagnosisResult = preCheck)
             } catch (e: Exception) {
                 Timber.e(e, "FaceScanViewModel: autoCapture failed")
-                captureCooldownUntil = System.currentTimeMillis() + 3000
+                captureCooldownUntil = System.currentTimeMillis() + 5000
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
                     isAnalyzing = false,
                     detectionState = DetectionState.POOR_QUALITY,
-                    statusMessage = "检测异常，请重试"
+                    statusMessage = "检测异常，请检查光线与姿势后重试"
                 )
             }
         }

@@ -31,7 +31,9 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,22 +83,41 @@ fun FaceScanScreen(
     // 快门音效
     val shutterSound = remember { MediaActionSound() }
 
+    // 屏幕补光：进入面诊时自动调高亮度，退出时恢复
+    val window = remember { context.findActivity()?.window }
+    val originalBrightness = remember { window?.attributes?.screenBrightness ?: -1f }
     DisposableEffect(Unit) {
+        window?.apply {
+            // 如果系统支持自动亮度，强制调至最大亮度用于补光
+            val attrs = attributes
+            if (attrs.screenBrightness < 0.8f) {
+                attrs.screenBrightness = 1.0f
+                attributes = attrs
+            }
+        }
         onDispose {
+            // 恢复原始亮度
+            window?.let { w ->
+                if (originalBrightness >= 0f) {
+                    val attrs = w.attributes
+                    attrs.screenBrightness = originalBrightness
+                    w.attributes = attrs
+                }
+            }
             CameraHelper.unbind()
             tts.stop()
             tts.shutdown()
         }
     }
 
-    // 自动抓拍：当连续处于READY状态0.8秒后自动触发
+    // 自动抓拍：当连续处于READY状态1.5秒后自动触发（给中老年用户留足调整时间）
     LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
         if (uiState.detectionState == DetectionState.READY
             && !uiState.isScanning
             && !uiState.isAnalyzing
             && uiState.diagnosisResult == null
         ) {
-            delay(800)
+            delay(1500)
             val bitmap = capturedBitmap
             if (bitmap != null) {
                 shutterSound.play(MediaActionSound.SHUTTER_CLICK)
@@ -191,6 +212,20 @@ fun FaceScanScreen(
                                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
+                    }
+
+                    // 底部引导提示条：光照、距离、姿势
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        GuideTipItem(text = "☀ 明亮光线")
+                        GuideTipItem(text = "↔ 一臂之距")
+                        GuideTipItem(text = "⟳ 正脸平视")
                     }
                 } else if (uiState.diagnosisResult != null) {
                     FaceDiagnosisResultCard(result = uiState.diagnosisResult!!)
@@ -405,4 +440,26 @@ private fun FaceErrorCard(message: String, onDismiss: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun GuideTipItem(text: String) {
+    Text(
+        text = text,
+        color = Color.White.copy(alpha = 0.85f),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+/** 从 Context 中获取当前 Activity */
+private fun android.content.Context.findActivity(): android.app.Activity? {
+    var context = this
+    while (context is android.content.ContextWrapper) {
+        if (context is android.app.Activity) return context
+        context = context.baseContext
+    }
+    return null
 }
