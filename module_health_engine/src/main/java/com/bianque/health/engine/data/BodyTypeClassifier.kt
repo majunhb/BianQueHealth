@@ -38,39 +38,85 @@ class BodyTypeClassifier @Inject constructor(
     private val rules: List<Rule> = buildRules()
 
     private fun buildRules(): List<Rule> = listOf(
-        // === 湿热质 ===
+        // ==================== 湿热质 (DAMPNESS_HEAT) ====================
         Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingColor", "contains", "黄")), BodyType.DAMPNESS_HEAT, 0.85f),
         Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingThickness", "contains", "腻")), BodyType.DAMPNESS_HEAT, 0.80f),
         Rule(listOf(Condition("complexion", "contains", "偏红"), Condition("coatingColor", "contains", "黄")), BodyType.DAMPNESS_HEAT, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingColor", "contains", "黄"), Condition("coatingThickness", "contains", "腻")), BodyType.DAMPNESS_HEAT, 0.90f),
+        Rule(listOf(Condition("coatingColor", "contains", "黄"), Condition("tongueBody", "contains", "老")), BodyType.DAMPNESS_HEAT, 0.75f),
+        Rule(listOf(Condition("complexion", "contains", "偏红"), Condition("tongueColor", "contains", "红"), Condition("coatingThickness", "contains", "腻")), BodyType.DAMPNESS_HEAT, 0.80f),
+        Rule(listOf(Condition("pulseType", "contains", "滑"), Condition("coatingColor", "contains", "黄")), BodyType.DAMPNESS_HEAT, 0.80f),
 
-        // === 痰湿质 ===
+        // ==================== 痰湿质 (PHLEGM_DAMPNESS) ====================
         Rule(listOf(Condition("tongueShape", "contains", "胖大"), Condition("coatingThickness", "contains", "腻")), BodyType.PHLEGM_DAMPNESS, 0.85f),
         Rule(listOf(Condition("coatingThickness", "contains", "厚"), Condition("tongueShape", "contains", "胖大")), BodyType.PHLEGM_DAMPNESS, 0.80f),
+        Rule(listOf(Condition("tongueShape", "contains", "胖大"), Condition("pulseType", "contains", "滑")), BodyType.PHLEGM_DAMPNESS, 0.80f),
+        Rule(listOf(Condition("coatingThickness", "contains", "腻"), Condition("pulseType", "contains", "滑")), BodyType.PHLEGM_DAMPNESS, 0.80f),
+        Rule(listOf(Condition("tongueShape", "contains", "胖大"), Condition("coatingThickness", "contains", "厚"), Condition("coatingColor", "contains", "白")), BodyType.PHLEGM_DAMPNESS, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("coatingThickness", "contains", "腻")), BodyType.PHLEGM_DAMPNESS, 0.75f),
+        Rule(listOf(Condition("complexion", "contains", "偏黄"), Condition("tongueShape", "contains", "胖大")), BodyType.PHLEGM_DAMPNESS, 0.70f),
 
-        // === 气虚质 ===
+        // ==================== 气虚质 (QI_DEFICIENCY) ====================
         Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "齿痕")), BodyType.QI_DEFICIENCY, 0.85f),
         Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueBody", "contains", "嫩")), BodyType.QI_DEFICIENCY, 0.80f),
         Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("pulseStrength", "contains", "偏弱")), BodyType.QI_DEFICIENCY, 0.75f),
         Rule(listOf(Condition("complexion", "contains", "偏白"), Condition("tongueColor", "contains", "淡白")), BodyType.QI_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "齿痕"), Condition("pulseStrength", "contains", "偏弱")), BodyType.QI_DEFICIENCY, 0.90f),
+        Rule(listOf(Condition("tongueBody", "contains", "嫩"), Condition("tongueShape", "contains", "齿痕")), BodyType.QI_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("pulseType", "contains", "细")), BodyType.QI_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("complexion", "contains", "偏白"), Condition("pulseStrength", "contains", "偏弱")), BodyType.QI_DEFICIENCY, 0.70f),
 
-        // === 阳虚质 ===
+        // ==================== 阳虚质 (YANG_DEFICIENCY) ====================
         Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "胖大")), BodyType.YANG_DEFICIENCY, 0.80f),
         Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("pulseType", "contains", "细")), BodyType.YANG_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "胖大"), Condition("pulseType", "contains", "细")), BodyType.YANG_DEFICIENCY, 0.85f),
+        Rule(listOf(Condition("complexion", "contains", "偏白"), Condition("tongueShape", "contains", "胖大")), BodyType.YANG_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueBody", "contains", "嫩"), Condition("pulseType", "contains", "细")), BodyType.YANG_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("coatingColor", "contains", "白"), Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "胖大")), BodyType.YANG_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("pulseStrength", "contains", "偏弱")), BodyType.YANG_DEFICIENCY, 0.70f),
 
-        // === 阴虚质 ===
+        // ==================== 阴虚质 (YIN_DEFICIENCY) ====================
         Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingMoisture", "contains", "燥")), BodyType.YIN_DEFICIENCY, 0.85f),
         Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("tongueBody", "contains", "老")), BodyType.YIN_DEFICIENCY, 0.80f),
         Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("tongueShape", "contains", "瘦薄")), BodyType.YIN_DEFICIENCY, 0.80f),
         Rule(listOf(Condition("complexion", "contains", "偏红"), Condition("tongueColor", "contains", "红")), BodyType.YIN_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("tongueShape", "contains", "瘦薄"), Condition("coatingMoisture", "contains", "燥")), BodyType.YIN_DEFICIENCY, 0.90f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("coatingThickness", "contains", "薄")), BodyType.YIN_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "红"), Condition("pulseType", "contains", "细")), BodyType.YIN_DEFICIENCY, 0.75f),
+        Rule(listOf(Condition("tongueColor", "contains", "红绛"), Condition("tongueShape", "contains", "瘦薄")), BodyType.YIN_DEFICIENCY, 0.80f),
+        Rule(listOf(Condition("coatingColor", "contains", "少"), Condition("tongueColor", "contains", "红")), BodyType.YIN_DEFICIENCY, 0.80f),
 
-        // === 血瘀质 ===
+        // ==================== 血瘀质 (BLOOD_STASIS) ====================
         Rule(listOf(Condition("tongueColor", "contains", "紫暗")), BodyType.BLOOD_STASIS, 0.85f),
         Rule(listOf(Condition("tongueColor", "contains", "红绛"), Condition("complexion", "contains", "晦暗")), BodyType.BLOOD_STASIS, 0.75f),
         Rule(listOf(Condition("sublingualVein", "contains", "怒张")), BodyType.BLOOD_STASIS, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "紫暗"), Condition("sublingualVein", "contains", "怒张")), BodyType.BLOOD_STASIS, 0.90f),
+        Rule(listOf(Condition("tongueColor", "contains", "紫暗"), Condition("complexion", "contains", "晦暗")), BodyType.BLOOD_STASIS, 0.85f),
+        Rule(listOf(Condition("tongueColor", "contains", "暗"), Condition("pulseType", "contains", "涩")), BodyType.BLOOD_STASIS, 0.80f),
+        Rule(listOf(Condition("tongueColor", "contains", "紫暗"), Condition("tongueBody", "contains", "老")), BodyType.BLOOD_STASIS, 0.75f),
+        Rule(listOf(Condition("complexion", "contains", "晦暗"), Condition("sublingualVein", "contains", "怒张")), BodyType.BLOOD_STASIS, 0.80f),
 
-        // === 气郁质 ===
+        // ==================== 气郁质 (QI_STAGNATION) ====================
         Rule(listOf(Condition("complexion", "contains", "晦暗"), Condition("tongueColor", "contains", "暗")), BodyType.QI_STAGNATION, 0.70f),
         Rule(listOf(Condition("pulseType", "contains", "弦")), BodyType.QI_STAGNATION, 0.75f),
+        Rule(listOf(Condition("pulseType", "contains", "弦"), Condition("tongueColor", "contains", "暗")), BodyType.QI_STAGNATION, 0.80f),
+        Rule(listOf(Condition("pulseType", "contains", "弦"), Condition("complexion", "contains", "晦暗")), BodyType.QI_STAGNATION, 0.75f),
+        Rule(listOf(Condition("pulseType", "contains", "弦"), Condition("tongueColor", "contains", "淡白")), BodyType.QI_STAGNATION, 0.70f),
+        Rule(listOf(Condition("tongueShape", "contains", "正常"), Condition("pulseType", "contains", "弦")), BodyType.QI_STAGNATION, 0.70f),
+
+        // ==================== 特禀质 (INHERENT_SPECIAL) ====================
+        Rule(listOf(Condition("tongueColor", "contains", "淡白"), Condition("tongueShape", "contains", "正常"), Condition("tongueBody", "contains", "嫩")), BodyType.INHERENT_SPECIAL, 0.60f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("coatingThickness", "contains", "薄"), Condition("pulseType", "contains", "细")), BodyType.INHERENT_SPECIAL, 0.55f),
+
+        // ==================== 平和质 (BALANCED) ====================
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("coatingThickness", "contains", "薄")), BodyType.BALANCED, 0.70f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("coatingColor", "contains", "白")), BodyType.BALANCED, 0.70f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("tongueShape", "contains", "正常")), BodyType.BALANCED, 0.70f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("tongueBody", "contains", "正常")), BodyType.BALANCED, 0.70f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("coatingThickness", "contains", "薄"), Condition("tongueShape", "contains", "正常")), BodyType.BALANCED, 0.80f),
+        Rule(listOf(Condition("complexion", "contains", "正常"), Condition("tongueColor", "contains", "淡红")), BodyType.BALANCED, 0.75f),
+        Rule(listOf(Condition("pulseType", "contains", "正常"), Condition("tongueColor", "contains", "淡红")), BodyType.BALANCED, 0.70f),
+        Rule(listOf(Condition("tongueColor", "contains", "淡红"), Condition("coatingThickness", "contains", "薄"), Condition("coatingColor", "contains", "白")), BodyType.BALANCED, 0.80f),
     )
 
     private fun checkCondition(field: String, operator: String, value: String, context: Map<String, String>): Boolean {
@@ -82,7 +128,46 @@ class BodyTypeClassifier @Inject constructor(
         }
     }
 
-    // ==================== Agent B: LLM 精辨 ====================
+    /**
+     * 体质倾向性评分 — 对所有9种体质计算倾向性评分。
+     * 返回按评分降序排列的体质列表，展示每种体质的符合程度。
+     */
+    fun calculateTendencyScores(
+        faceResult: FaceDiagnosisResult,
+        tongueResult: TongueDiagnosisResult,
+        pulseResult: PulseDiagnosisResult,
+        bpResult: BloodPressureResult
+    ): List<Pair<BodyType, Float>> {
+        val context = mapOf(
+            "tongueColor" to tongueResult.tongueColor,
+            "coatingColor" to tongueResult.coatingColor,
+            "coatingThickness" to tongueResult.coatingThickness,
+            "coatingMoisture" to tongueResult.coatingMoisture,
+            "tongueShape" to tongueResult.tongueShape,
+            "tongueBody" to tongueResult.tongueBody,
+            "sublingualVein" to tongueResult.sublingualVein,
+            "complexion" to faceResult.overallComplexion,
+            "pulseType" to pulseResult.pulseType,
+            "pulseStrength" to pulseResult.pulseStrength
+        )
+
+        val scores = mutableMapOf<BodyType, Float>()
+        // 初始化所有体质评分为0
+        BodyType.entries.forEach { scores[it] = 0f }
+
+        for (rule in rules) {
+            val allMatch = rule.conditions.all { cond ->
+                checkCondition(cond.field, cond.operator, cond.value, context)
+            }
+            if (allMatch) {
+                scores[rule.bodyType] = maxOf(scores[rule.bodyType] ?: 0f, rule.confidence)
+            }
+        }
+
+        return scores.entries
+            .sortedByDescending { it.value }
+            .map { Pair(it.key, it.value) }
+    }
 
     private companion object {
         val SYSTEM_PROMPT = """
