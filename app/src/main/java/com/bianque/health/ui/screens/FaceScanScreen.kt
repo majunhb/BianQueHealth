@@ -22,8 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -44,7 +44,6 @@ import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
 import kotlinx.coroutines.delay
 import java.util.Locale
-import kotlin.math.max
 
 private val OutlineBlue = Color(0xFF007AFF)
 private val OutlineGray = Color(0xFFCCCCCC)
@@ -233,12 +232,10 @@ fun FaceScanScreen(
 }
 
 /**
- * 人脸轮廓遮罩 — 动态椭圆，跟随 ML Kit 实时检测的人脸位置。
+ * 人脸轮廓遮罩 — 面部轮廓线，模拟人脸外观。
  *
- * 对标 YouCam / SkinVision / VIDA 的做法：
- * - 检测到人脸时，引导框跟随人脸实际位置
- * - 未检测到时，引导框居中显示并脉冲动画
- * - 颜色根据检测状态变化：灰（未检测到）→ 黄（质量不佳）→ 绿（就绪）
+ * 使用贝塞尔曲线绘制近似人脸轮廓（额头弧线 → 太阳穴 → 颧骨 → 下颌 → 下巴）。
+ * 只要人脸与轮廓线重叠即开始扫描。
  */
 @Composable
 private fun FaceOutlineOverlay(
@@ -266,64 +263,91 @@ private fun FaceOutlineOverlay(
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // 计算引导框位置：如果检测到人脸，跟随人脸；否则居中
-        val ovalCenterX: Float
-        val ovalCenterY: Float
-        val ovalWidth: Float
-        val ovalHeight: Float
+        // 轮廓线居中，宽 52% 画面宽，高 62% 画面高
+        val w = canvasWidth * 0.52f
+        val h = canvasHeight * 0.62f
+        val cx = canvasWidth / 2f
+        val cy = canvasHeight / 2f
 
-        if (faceRect != null && imageWidth > 0 && imageHeight > 0) {
-            // 将人脸边界框从图像坐标映射到屏幕坐标
-            // FILL_CENTER 缩放：等比缩放填满，居中裁剪
-            val scaleX = canvasWidth / imageWidth.toFloat()
-            val scaleY = canvasHeight / imageHeight.toFloat()
-            val scale = max(scaleX, scaleY)
-
-            val displayWidth = imageWidth * scale
-            val displayHeight = imageHeight * scale
-            val offsetX = (canvasWidth - displayWidth) / 2f
-            val offsetY = (canvasHeight - displayHeight) / 2f
-
-            // 人脸中心在图像坐标中的位置
-            val faceCenterImageX = faceRect.centerX().toFloat()
-            val faceCenterImageY = faceRect.centerY().toFloat()
-
-            // 映射到屏幕坐标（前置摄像头需水平镜像）
-            val screenX = canvasWidth - (faceCenterImageX * scale + offsetX)
-            val screenY = faceCenterImageY * scale + offsetY
-
-            ovalCenterX = screenX
-            ovalCenterY = screenY
-            // 引导框大小 = 人脸边界框映射到屏幕的 1.3 倍
-            ovalWidth = faceRect.width() * scale * 1.3f
-            ovalHeight = faceRect.height() * scale * 1.3f
-        } else {
-            // 未检测到人脸：居中显示默认椭圆
-            ovalCenterX = canvasWidth / 2f
-            ovalCenterY = canvasHeight / 2f
-            ovalWidth = canvasWidth * 0.52f
-            ovalHeight = canvasHeight * 0.62f
+        // 面部轮廓 Path：贝塞尔曲线模拟人脸外形
+        val facePath = Path().apply {
+            // 额头左 → 额头右
+            moveTo(cx - w * 0.38f, cy - h * 0.35f)
+            cubicTo(
+                cx - w * 0.15f, cy - h * 0.48f,
+                cx + w * 0.15f, cy - h * 0.48f,
+                cx + w * 0.38f, cy - h * 0.35f
+            )
+            // 右太阳穴 → 右颧骨
+            cubicTo(
+                cx + w * 0.50f, cy - h * 0.18f,
+                cx + w * 0.50f, cy + h * 0.05f,
+                cx + w * 0.44f, cy + h * 0.22f
+            )
+            // 右下颌 → 下巴右侧
+            cubicTo(
+                cx + w * 0.34f, cy + h * 0.40f,
+                cx + w * 0.16f, cy + h * 0.48f,
+                cx, cy + h * 0.48f
+            )
+            // 下巴左侧 → 左下颌
+            cubicTo(
+                cx - w * 0.16f, cy + h * 0.48f,
+                cx - w * 0.34f, cy + h * 0.40f,
+                cx - w * 0.44f, cy + h * 0.22f
+            )
+            // 左颧骨 → 左太阳穴
+            cubicTo(
+                cx - w * 0.50f, cy + h * 0.05f,
+                cx - w * 0.50f, cy - h * 0.18f,
+                cx - w * 0.38f, cy - h * 0.35f
+            )
+            close()
         }
 
-        val topLeft = Offset(
-            ovalCenterX - ovalWidth / 2f,
-            ovalCenterY - ovalHeight / 2f
-        )
-
-        // 外层椭圆
-        drawOval(
+        // 绘制面部轮廓线
+        drawPath(
+            path = facePath,
             color = outlineColor.copy(alpha = currentAlpha),
-            topLeft = topLeft,
-            size = Size(ovalWidth, ovalHeight),
             style = Stroke(width = 4f)
         )
 
-        // 内层椭圆（缩进）
-        val inset = 10f
-        drawOval(
+        // 内层轮廓线（缩进，产生双层效果）
+        val innerPath = Path().apply {
+            val inset = 12f
+            val iw = w - inset * 2f
+            val ih = h - inset * 2f
+            moveTo(cx - iw * 0.38f, cy - ih * 0.35f)
+            cubicTo(
+                cx - iw * 0.15f, cy - ih * 0.48f,
+                cx + iw * 0.15f, cy - ih * 0.48f,
+                cx + iw * 0.38f, cy - ih * 0.35f
+            )
+            cubicTo(
+                cx + iw * 0.50f, cy - ih * 0.18f,
+                cx + iw * 0.50f, cy + ih * 0.05f,
+                cx + iw * 0.44f, cy + ih * 0.22f
+            )
+            cubicTo(
+                cx + iw * 0.34f, cy + ih * 0.40f,
+                cx + iw * 0.16f, cy + ih * 0.48f,
+                cx, cy + ih * 0.48f
+            )
+            cubicTo(
+                cx - iw * 0.16f, cy + ih * 0.48f,
+                cx - iw * 0.34f, cy + ih * 0.40f,
+                cx - iw * 0.44f, cy + ih * 0.22f
+            )
+            cubicTo(
+                cx - iw * 0.50f, cy + ih * 0.05f,
+                cx - iw * 0.50f, cy - ih * 0.18f,
+                cx - iw * 0.38f, cy - ih * 0.35f
+            )
+            close()
+        }
+        drawPath(
+            path = innerPath,
             color = outlineColor.copy(alpha = currentAlpha * 0.4f),
-            topLeft = Offset(topLeft.x + inset, topLeft.y + inset),
-            size = Size(ovalWidth - inset * 2f, ovalHeight - inset * 2f),
             style = Stroke(width = 2f)
         )
     }
