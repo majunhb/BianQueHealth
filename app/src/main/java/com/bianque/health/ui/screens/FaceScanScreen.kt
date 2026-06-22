@@ -114,14 +114,14 @@ fun FaceScanScreen(
         }
     }
 
-    // 自动抓拍：当连续处于READY状态1.5秒后自动触发（给中老年用户留足调整时间）
+    // 自动抓拍：面部进入圆形区域后 0.8 秒自动触发
     LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
         if (uiState.detectionState == DetectionState.READY
             && !uiState.isScanning
             && !uiState.isAnalyzing
             && uiState.diagnosisResult == null
         ) {
-            delay(1500)
+            delay(800)
             val bitmap = capturedBitmap
             if (bitmap != null) {
                 shutterSound.play(MediaActionSound.SHUTTER_CLICK)

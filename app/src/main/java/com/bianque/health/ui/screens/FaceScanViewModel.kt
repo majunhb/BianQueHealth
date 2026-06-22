@@ -89,45 +89,45 @@ class FaceScanViewModel @Inject constructor(
     fun autoCapture(bitmap: Bitmap) {
         if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
         if (_uiState.value.diagnosisResult != null) return
+        // 仅在面部已定位到圆形区域内时触发扫描
+        if (_uiState.value.detectionState != DetectionState.READY) return
+        if (!_uiState.value.faceFound) return
 
         _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
 
         viewModelScope.launch {
             try {
-                val preCheck = withContext(Dispatchers.Default) {
+                // 扫描动画 1 秒（缩短等待时间）
+                delay(1000)
+                _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
+
+                // 直接调用 faceMeshDetector 进行完整面诊分析
+                val result = withContext(Dispatchers.Default) {
                     faceMeshDetector.detect(bitmap)
                 }
-                if (preCheck.overallComplexion == "未检测到面部") {
-                    captureCooldownUntil = System.currentTimeMillis() + 5000 // 延长冷却到5秒，给用户调整时间
-                    // 质量分兜底：给出精确的失败原因和可执行建议
-                    val advice = when {
-                        preCheck.confidence < 0.3f -> "光线不足或面部遮挡，请移至明亮处并确保面部完整可见"
-                        preCheck.regions.isEmpty() -> "面部特征不完整，请正对摄像头并保持适当距离"
-                        else -> "识别失败，请调整光线与姿势后重试"
-                    }
+
+                if (result.overallComplexion == "未检测到面部") {
+                    captureCooldownUntil = System.currentTimeMillis() + 2000
                     _uiState.value = _uiState.value.copy(
                         isScanning = false,
+                        isAnalyzing = false,
                         detectionState = DetectionState.POOR_QUALITY,
-                        statusMessage = advice
+                        statusMessage = "识别失败，请确保面部在圆形区域内"
                     )
                     return@launch
                 }
 
-                // 扫描动画 2 秒
-                delay(2000)
-                _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
-
-                diagnosisCache.faceResult = preCheck
-                persistResult(preCheck)
-                _uiState.value = _uiState.value.copy(isAnalyzing = false, diagnosisResult = preCheck)
+                diagnosisCache.faceResult = result
+                persistResult(result)
+                _uiState.value = _uiState.value.copy(isAnalyzing = false, diagnosisResult = result)
             } catch (e: Exception) {
                 Timber.e(e, "FaceScanViewModel: autoCapture failed")
-                captureCooldownUntil = System.currentTimeMillis() + 5000
+                captureCooldownUntil = System.currentTimeMillis() + 2000
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
                     isAnalyzing = false,
                     detectionState = DetectionState.POOR_QUALITY,
-                    statusMessage = "检测异常，请检查光线与姿势后重试"
+                    statusMessage = "检测异常，请调整光线与姿势后重试"
                 )
             }
         }
