@@ -97,7 +97,7 @@ object CameraHelper {
                 // 关闭面部美化（厂商私有 key，部分机型有效）
                 setCaptureRequestOption(
                     CaptureRequest.STATISTICS_FACE_DETECT_MODE,
-                    CaptureRequest.STATISTICS_FACE_DETECT_MODE_OFF
+                    CameraMetadata.STATISTICS_FACE_DETECT_MODE_OFF
                 )
             }
             preview.setSurfaceProvider(previewView.surfaceProvider)
