@@ -214,6 +214,29 @@ fun FaceScanScreen(
                         )
                     }
 
+                    // 隐私保护标识
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 36.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Green40.copy(alpha = 0.85f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🔒", fontSize = 10.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.privacy_badge_local),
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
                     // 底部引导提示条：光照、距离、姿势
                     Row(
                         modifier = Modifier

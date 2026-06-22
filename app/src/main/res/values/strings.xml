@@ -114,4 +114,38 @@
     <string name="priority_suggest">建议</string>
     <string name="priority_reference">参考</string>
     <string name="disclaimer">本报告由 AI 生成，仅供参考，不构成医疗诊断或处方建议。如有健康问题，请咨询专业医师。</string>
+
+    <!-- 隐私保护 -->
+    <string name="privacy_settings_menu">隐私设置</string>
+    <string name="privacy_consent_title">隐私保护声明</string>
+    <string name="privacy_consent_heading">您的面部数据，您做主</string>
+    <string name="privacy_point1_title">仅拍摄分析所需</string>
+    <string name="privacy_point1_desc">面诊和舌诊需要拍摄面部/舌部图像用于中医特征分析，不会采集其他个人信息</string>
+    <string name="privacy_point2_title">全部本地处理</string>
+    <string name="privacy_point2_desc">所有图像在您的设备上完成分析，原始图像不会上传到任何云端服务器</string>
+    <string name="privacy_point3_title">加密存储</string>
+    <string name="privacy_point3_desc">诊断结果（非原始图像）使用 AES-256 加密存储在本地数据库中</string>
+    <string name="privacy_point4_title">可随时删除</string>
+    <string name="privacy_point4_desc">您可以在隐私设置中随时删除所有诊断数据，数据将彻底清除不可恢复</string>
+    <string name="privacy_point5_title">可随时撤回</string>
+    <string name="privacy_point5_desc">您可以在隐私设置中撤回同意，撤回后仍可使用其他不涉及面部的功能</string>
+    <string name="privacy_agree">同意并继续</string>
+    <string name="privacy_disagree">暂不同意</string>
+    <string name="privacy_footer">本应用承诺保护您的隐私，不会将您的面部数据用于任何其他目的</string>
+    <string name="privacy_settings_title">隐私设置</string>
+    <string name="privacy_data_storage_title">数据安全保障</string>
+    <string name="privacy_data_storage_desc">您的诊断数据采用 SQLCipher + AES-256 加密存储，原始图像仅在内存中临时处理，不会写入磁盘</string>
+    <string name="privacy_policy_title">隐私政策摘要</string>
+    <string name="privacy_policy_content">1. 面诊和舌诊功能需要访问摄像头拍摄面部/舌部图像。\n\n2. 所有图像处理在您的设备本地完成，不会上传至任何云端服务器。\n\n3. 诊断完成后，原始图像即被丢弃，仅保留分析结果（面色、舌色等文字描述）。\n\n4. 诊断数据使用加密数据库存储，只有您本人可以访问。\n\n5. 您可以随时在隐私设置中删除所有数据或撤回同意。\n\n6. 本应用不会将您的面部数据用于任何商业目的或第三方分享。</string>
+    <string name="privacy_data_stats">数据统计</string>
+    <string name="privacy_delete_all">删除所有诊断数据</string>
+    <string name="privacy_revoke_consent">撤回隐私同意</string>
+    <string name="privacy_delete_confirm_title">确认删除</string>
+    <string name="privacy_delete_confirm_msg">此操作将永久删除所有面诊、舌诊、脉诊及血压数据，且不可恢复。确定要继续吗？</string>
+    <string name="privacy_revoke_confirm_title">确认撤回</string>
+    <string name="privacy_revoke_confirm_msg">撤回同意后，面诊和舌诊功能将不可用（需重新授权）。其他功能不受影响。确定要撤回吗？</string>
+    <string name="privacy_badge_local">本地处理 · 不存储原始图像</string>
+    <string name="privacy_required_title">需要隐私授权</string>
+    <string name="privacy_required_msg">面诊和舌诊需要拍摄您的面部图像。请先阅读并同意隐私保护声明后再使用此功能。</string>
+    <string name="privacy_go_consent">前往授权</string>
 </resources>

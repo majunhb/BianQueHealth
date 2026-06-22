@@ -30,4 +30,10 @@ interface HealthDao {
 
     @Upsert
     suspend fun upsertUserProfile(profile: UserProfileEntity)
+
+    @Query("DELETE FROM health_records")
+    suspend fun deleteAllRecords()
+
+    @Query("DELETE FROM health_records WHERE module_type = :moduleType")
+    suspend fun deleteRecordsByModule(moduleType: String)
 }

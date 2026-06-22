@@ -34,7 +34,8 @@ fun MainScreen(
     onNavigateToTongue: () -> Unit,
     onNavigateToBP: () -> Unit,
     onNavigateToPulse: () -> Unit,
-    onNavigateToReport: () -> Unit
+    onNavigateToReport: () -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val modules = listOf(
         ModuleCard(R.string.module_face, R.string.module_face_desc, Icons.Default.Face, Green40),
@@ -62,6 +63,15 @@ fun MainScreen(
                             stringResource(R.string.app_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            Icons.Default.Security,
+                            contentDescription = stringResource(R.string.privacy_settings_menu),
+                            tint = Color.White
                         )
                     }
                 },
