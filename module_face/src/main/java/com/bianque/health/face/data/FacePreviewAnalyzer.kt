@@ -14,6 +14,7 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.sqrt
+import kotlin.math.max
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
