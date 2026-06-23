@@ -39,7 +39,7 @@ class FacePreviewAnalyzer @Inject constructor(
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(0.04f)  // 降低阈值，允许更近的距离
+            .setMinFaceSize(0.03f)  // 极低阈值，允许 15-20cm 近距离
             .enableTracking()
             .build()
     )
@@ -146,7 +146,19 @@ class FacePreviewAnalyzer @Inject constructor(
 
             val state: DetectionState
             val message: String
-            if (faceInCircle) {
+            // 偏转角过大（>35°）→ 提示正对摄像头
+            val yawAbs = kotlin.math.abs(yaw)
+            val rollAbs = kotlin.math.abs(roll)
+            val isFacingCamera = yawAbs < 35f && rollAbs < 35f
+
+            if (!isFacingCamera) {
+                state = DetectionState.POOR_QUALITY
+                message = when {
+                    yawAbs > 35f -> "请正对摄像头，避免侧脸"
+                    rollAbs > 35f -> "请摆正头部，避免歪头"
+                    else -> "请将面部正对摄像头"
+                }
+            } else if (faceInCircle) {
                 state = DetectionState.READY
                 message = "定位成功，正在自动扫描…"
             } else {
@@ -447,8 +459,8 @@ class FacePreviewAnalyzer @Inject constructor(
         val cy = imageHeight * circleCenterYRatio
         val radius = Math.min(imageWidth, imageHeight).toFloat() * circleRadiusRatio
 
-        // 允许 10% 的点在圆外（容忍下颌等边缘）
-        val maxOutside = (contourPoints.size * 0.1f).toInt().coerceAtLeast(1)
+        // 允许 20% 的点在圆外（容忍下颌等边缘，近距离时面部更大）
+        val maxOutside = (contourPoints.size * 0.2f).toInt().coerceAtLeast(2)
         var outsideCount = 0
 
         for (point in contourPoints) {

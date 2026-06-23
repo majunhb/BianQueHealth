@@ -92,16 +92,14 @@ class FaceScanViewModel @Inject constructor(
     fun autoCapture(bitmap: Bitmap) {
         if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
         if (_uiState.value.diagnosisResult != null) return
-        // 仅在面部已定位到圆形区域内时触发扫描
-        if (_uiState.value.detectionState != DetectionState.READY) return
         if (!_uiState.value.faceFound) return
 
         _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
 
         viewModelScope.launch {
             try {
-                // 扫描动画 1 秒（缩短等待时间）
-                delay(1000)
+                // 扫描动画 0.5 秒（快速反馈）
+                delay(500)
                 _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
 
                 // 调用 MediaPipe 468点七区高精度分析（ML Kit 回退）

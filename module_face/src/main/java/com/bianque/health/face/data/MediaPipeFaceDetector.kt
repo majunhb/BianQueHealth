@@ -62,9 +62,9 @@ class MediaPipeFaceDetector @Inject constructor() {
 
     companion object {
         private const val MODEL_ASSET_PATH = "face_landmarker.task"
-        private const val MIN_FACE_DETECTION_CONFIDENCE = 0.5f
-        private const val MIN_FACE_PRESENCE_CONFIDENCE = 0.5f
-        private const val MIN_TRACKING_CONFIDENCE = 0.5f
+        private const val MIN_FACE_DETECTION_CONFIDENCE = 0.3f
+        private const val MIN_FACE_PRESENCE_CONFIDENCE = 0.3f
+        private const val MIN_TRACKING_CONFIDENCE = 0.3f
 
         /**
          * 面部轮廓 (Face Oval) 索引 — 36 个点，按顺时针方向排列。

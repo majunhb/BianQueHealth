@@ -37,7 +37,7 @@ class FaceMeshDetector @Inject constructor(
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(0.05f)
+            .setMinFaceSize(0.03f)
             .enableTracking()
             .build()
     )
