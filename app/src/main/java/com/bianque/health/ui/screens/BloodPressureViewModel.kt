@@ -146,7 +146,7 @@ class BloodPressureViewModel @Inject constructor(
                 val alertResult = BpAlertEngine.analyze(result)
 
                 // 趋势分析（加载历史数据）
-                val historyRecords = loadHistory()
+                val historyRecords = loadHistoryRecords()
                 val trendResult = if (historyRecords.isNotEmpty()) {
                     BpTrendAnalyzer.analyzeWeeklyTrend(historyRecords + result)
                 } else null
@@ -229,7 +229,7 @@ class BloodPressureViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadHistory(): List<BloodPressureResult> {
+    private suspend fun loadHistoryRecords(): List<BloodPressureResult> {
         return try {
             val records = withContext(Dispatchers.IO) {
                 healthDao.getRecordsByModule("BLOOD_PRESSURE")

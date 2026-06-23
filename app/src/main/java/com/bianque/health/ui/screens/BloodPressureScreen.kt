@@ -58,6 +58,7 @@ private val RppgGreen = Color(0xFF22C55E)
 private val RppgRed = Color(0xFFEF4444)
 private val SurfaceDark = Color(0xFF1A1A2E)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BloodPressureScreen(
     onBack: () -> Unit,
