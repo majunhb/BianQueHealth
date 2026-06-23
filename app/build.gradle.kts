@@ -70,6 +70,8 @@ dependencies {
     implementation(libs.camerax.core)
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
+    // Guava (ListenableFuture required by CameraX)
+    implementation(libs.guava)
     // Room (needed for RoomDatabase supertype access in AppModule)
     implementation(libs.room.runtime)
     debugImplementation(libs.compose.ui.tooling)

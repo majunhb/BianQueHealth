@@ -23,6 +23,7 @@ material3 = "1.2.1"
 sqlcipher = "4.5.4"
 security-crypto = "1.1.0-alpha06"
 commons-math3 = "3.6.1"
+guava = "33.0.0-android"
 
 [libraries]
 # Compose
@@ -90,6 +91,9 @@ security-crypto = { group = "androidx.security", name = "security-crypto", versi
 
 # Apache Commons Math (FFT/signal processing)
 commons-math3 = { group = "org.apache.commons", name = "commons-math3", version.ref = "commons-math3" }
+
+# Guava (ListenableFuture for CameraX)
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
