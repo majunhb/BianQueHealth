@@ -41,7 +41,11 @@ data class FaceScanUiState(
     val faceRect: Rect? = null,
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
-    val faceContourPoints: List<PointF> = emptyList()
+    val faceContourPoints: List<PointF> = emptyList(),
+    // 面部中心坐标（图像坐标系，用于动态跟踪圆形叠加层）
+    val faceCenterX: Float = 0f,
+    val faceCenterY: Float = 0f,
+    val faceRadius: Float = 0f
 )
 
 @HiltViewModel
@@ -81,7 +85,10 @@ class FaceScanViewModel @Inject constructor(
                     faceRect = result.boundingBox,
                     imageWidth = result.imageWidth,
                     imageHeight = result.imageHeight,
-                    faceContourPoints = result.contourPoints
+                    faceContourPoints = result.contourPoints,
+                    faceCenterX = result.faceCenterX,
+                    faceCenterY = result.faceCenterY,
+                    faceRadius = result.faceRadius
                 )
             } catch (e: Exception) {
                 Timber.w(e, "FaceScanViewModel: frame analysis failed")
@@ -113,7 +120,7 @@ class FaceScanViewModel @Inject constructor(
                         isScanning = false,
                         isAnalyzing = false,
                         detectionState = DetectionState.POOR_QUALITY,
-                        statusMessage = "识别失败，请确保面部在圆形区域内"
+                        statusMessage = "识别失败，请确保面部光线充足且保持静止"
                     )
                     return@launch
                 }

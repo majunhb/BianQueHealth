@@ -47,10 +47,6 @@ class FacePreviewAnalyzer @Inject constructor(
     private var lastAnalysisTime = 0L
     private val analysisIntervalMs = 200L  // 提高响应速度
 
-    /** 圆形扫描区域在图像坐标系中的相对参数 */
-    private val circleCenterYRatio = 0.46f
-    private val circleRadiusRatio = 0.38f
-
     data class PreviewResult(
         val faceFound: Boolean,
         val boundingBox: Rect?,
@@ -64,7 +60,13 @@ class FacePreviewAnalyzer @Inject constructor(
         val detectionState: DetectionState,
         val guidanceMessage: String,
         /** ML Kit 面部轮廓点 (FaceContour.FACE)，图像坐标系 */
-        val contourPoints: List<PointF> = emptyList()
+        val contourPoints: List<PointF> = emptyList(),
+        /** 面部中心 X 坐标（图像坐标系，用于动态跟踪圆形叠加层） */
+        val faceCenterX: Float = 0f,
+        /** 面部中心 Y 坐标（图像坐标系，用于动态跟踪圆形叠加层） */
+        val faceCenterY: Float = 0f,
+        /** 面部近似半径（图像坐标系，轮廓点包围圆的半径） */
+        val faceRadius: Float = 0f
     )
 
     suspend fun analyze(bitmap: Bitmap): PreviewResult? = withContext(Dispatchers.Default) {
@@ -136,13 +138,24 @@ class FacePreviewAnalyzer @Inject constructor(
             val contour = face.getContour(FaceContour.FACE)
             val contourPoints = contour?.points ?: emptyList()
 
-            // 检测面部是否在圆形扫描区域内
-            val faceInCircle = contourPoints.isNotEmpty() && isFaceInCircle(
-                contourPoints, imageWidth, imageHeight
-            )
+            // 计算面部中心坐标和近似半径（用于动态跟踪）
+            val faceCenterX: Float
+            val faceCenterY: Float
+            val faceRadius: Float
+            if (contourPoints.isNotEmpty()) {
+                faceCenterX = contourPoints.map { it.x }.average().toFloat()
+                faceCenterY = contourPoints.map { it.y }.average().toFloat()
+                val cx = faceCenterX
+                val cy = faceCenterY
+                faceRadius = sqrt(contourPoints.maxOf { (it.x - cx) * (it.x - cx) + (it.y - cy) * (it.y - cy) })
+            } else {
+                faceCenterX = bounds.centerX().toFloat()
+                faceCenterY = bounds.centerY().toFloat()
+                faceRadius = max(bounds.width(), bounds.height()) / 2f
+            }
 
-            Timber.d("FacePreviewAnalyzer: face found, contour points=%d, inCircle=%s",
-                contourPoints.size, faceInCircle)
+            Timber.d("FacePreviewAnalyzer: face found, contour points=%d, center=(%.0f,%.0f), radius=%.0f",
+                contourPoints.size, faceCenterX, faceCenterY, faceRadius)
 
             val state: DetectionState
             val message: String
@@ -158,21 +171,16 @@ class FacePreviewAnalyzer @Inject constructor(
                     rollAbs > 35f -> "请摆正头部，避免歪头"
                     else -> "请将面部正对摄像头"
                 }
-            } else if (faceInCircle) {
-                state = DetectionState.READY
-                message = "定位成功，正在自动扫描…"
-            } else {
-                // 面部在画面中但不在圆形区域中心
+            } else if (faceSizeRatio < 0.03f) {
                 state = DetectionState.POOR_QUALITY
-                val centerX = contourPoints.map { it.x }.average().toFloat()
-                val centerY = contourPoints.map { it.y }.average().toFloat()
-                val imgCx = imageWidth / 2f
-                val imgCy = imageHeight * circleCenterYRatio
-                message = when {
-                    centerY < imgCy - imageHeight * 0.1f -> "请将面部向下移动，对准圆心"
-                    centerY > imgCy + imageHeight * 0.15f -> "请将面部向上移动，对准圆心"
-                    else -> "请将面部对准圆形区域中央"
-                }
+                message = "请靠近摄像头，面部太小"
+            } else if (faceSizeRatio > 0.45f) {
+                state = DetectionState.POOR_QUALITY
+                message = "请稍远离摄像头，面部过大"
+            } else {
+                // 面部在画面中，偏转角合格，大小合适 → 自由跟踪扫描
+                state = DetectionState.READY
+                message = "已跟踪面部，正在自动扫描…"
             }
 
             PreviewResult(
@@ -187,7 +195,10 @@ class FacePreviewAnalyzer @Inject constructor(
                 rightEyeOpen = rightEye,
                 detectionState = state,
                 guidanceMessage = message,
-                contourPoints = contourPoints
+                contourPoints = contourPoints,
+                faceCenterX = faceCenterX,
+                faceCenterY = faceCenterY,
+                faceRadius = faceRadius
             )
         } catch (e: Exception) {
             Timber.w(e, "FacePreviewAnalyzer: detection failed")
@@ -439,41 +450,6 @@ class FacePreviewAnalyzer @Inject constructor(
             Timber.w(e, "FacePreviewAnalyzer: failed to extract blendshape '%s'", categoryName)
             1f
         }
-    }
-
-    /**
-     * 判断面部轮廓点是否全部在圆形扫描区域内。
-     *
-     * 圆形区域定义：圆心 = (imageWidth/2, imageHeight * circleCenterYRatio)
-     *               半径 = min(imageWidth, imageHeight) * circleRadiusRatio
-     * 允许不超过 10% 的轮廓点超出圆形区域（容忍边缘情况）。
-     */
-    private fun isFaceInCircle(
-        contourPoints: List<PointF>,
-        imageWidth: Int,
-        imageHeight: Int
-    ): Boolean {
-        if (contourPoints.isEmpty()) return false
-
-        val cx = imageWidth / 2f
-        val cy = imageHeight * circleCenterYRatio
-        val radius = Math.min(imageWidth, imageHeight).toFloat() * circleRadiusRatio
-
-        // 允许 20% 的点在圆外（容忍下颌等边缘，近距离时面部更大）
-        val maxOutside = (contourPoints.size * 0.2f).toInt().coerceAtLeast(2)
-        var outsideCount = 0
-
-        for (point in contourPoints) {
-            val dx = point.x - cx
-            val dy = point.y - cy
-            val dist = sqrt(dx * dx + dy * dy)
-            if (dist > radius) {
-                outsideCount++
-                if (outsideCount > maxOutside) return false
-            }
-        }
-
-        return true
     }
 
     /**

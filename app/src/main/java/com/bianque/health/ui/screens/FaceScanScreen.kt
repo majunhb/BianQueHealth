@@ -9,6 +9,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -24,11 +25,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -188,7 +191,10 @@ fun FaceScanScreen(
                         isScanning = uiState.isScanning,
                         imageWidth = uiState.imageWidth,
                         imageHeight = uiState.imageHeight,
-                        contourPoints = uiState.faceContourPoints
+                        contourPoints = uiState.faceContourPoints,
+                        faceCenterX = uiState.faceCenterX,
+                        faceCenterY = uiState.faceCenterY,
+                        faceRadius = uiState.faceRadius
                     )
 
                     // 引导文字
@@ -326,7 +332,10 @@ private fun CircularScanOverlay(
     isScanning: Boolean,
     imageWidth: Int,
     imageHeight: Int,
-    contourPoints: List<PointF>
+    contourPoints: List<PointF>,
+    faceCenterX: Float = 0f,
+    faceCenterY: Float = 0f,
+    faceRadius: Float = 0f
 ) {
     val accentColor = when (detectionState) {
         DetectionState.NOT_DETECTED -> OutlineGray
@@ -371,19 +380,70 @@ private fun CircularScanOverlay(
 
     val hasFace = contourPoints.isNotEmpty() && imageWidth > 0 && imageHeight > 0
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val canvasW = size.width
-        val canvasH = size.height
-        val cx = canvasW / 2f
-        val cy = canvasH * 0.46f
-        val radius = min(canvasW, canvasH) * 0.38f
+    // 捕获 Canvas 实际尺寸用于坐标转换
+    var canvasSize by remember { mutableStateOf(Size.Zero) }
+
+    // 将图像坐标系的面部中心转换为 Canvas 坐标系
+    val targetCx: Float
+    val targetCy: Float
+    val targetRadius: Float
+    if (canvasSize.width > 0 && canvasSize.height > 0 && imageWidth > 0 && imageHeight > 0) {
+        val scaleX = canvasSize.width / imageWidth.toFloat()
+        val scaleY = canvasSize.height / imageHeight.toFloat()
+        val scale = max(scaleX, scaleY)
+        val displayW = imageWidth * scale
+        val displayH = imageHeight * scale
+        val offsetX = (canvasSize.width - displayW) / 2f
+        val offsetY = (canvasSize.height - displayH) / 2f
+
+        if (hasFace && faceRadius > 0f) {
+            targetCx = faceCenterX * scale + offsetX
+            targetCy = faceCenterY * scale + offsetY
+            targetRadius = faceRadius * scale * 1.1f  // 放大 10% 留呼吸空间
+        } else {
+            // 未检测到面部：默认居中
+            targetCx = canvasSize.width / 2f
+            targetCy = canvasSize.height * 0.46f
+            targetRadius = min(canvasSize.width, canvasSize.height) * 0.38f
+        }
+    } else {
+        targetCx = 0f
+        targetCy = 0f
+        targetRadius = 0f
+    }
+
+    // 平滑跟随动画（200ms lerp，避免抖动）
+    val animatedCx by animateFloatAsState(
+        targetValue = targetCx,
+        animationSpec = tween(200),
+        label = "circleCx"
+    )
+    val animatedCy by animateFloatAsState(
+        targetValue = targetCy,
+        animationSpec = tween(200),
+        label = "circleCy"
+    )
+    val animatedRadius by animateFloatAsState(
+        targetValue = targetRadius,
+        animationSpec = tween(200),
+        label = "circleRadius"
+    )
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { canvasSize = Size(it.width.toFloat(), it.height.toFloat()) }
+    ) {
+        val cx = if (animatedCx > 0f) animatedCx else (size.width / 2f)
+        val cy = if (animatedCy > 0f) animatedCy else (size.height * 0.46f)
+        val radius = if (animatedRadius > 0f) animatedRadius else (min(size.width, size.height) * 0.38f)
         val rotation = rotationAnim.value
         val breathe = breatheAnim.value
         val progress = scanProgress.value
 
         // 计算人脸关键点实际屏幕坐标（如有检测到人脸）
         val faceDots: Map<String, Offset> = if (hasFace) {
-            computeFaceKeyPoints(contourPoints, imageWidth, imageHeight, canvasW, canvasH)
+            computeFaceKeyPoints(contourPoints, imageWidth, imageHeight, size.width, size.height)
         } else emptyMap()
 
         // === 第1层：暗角遮罩（圆形外部变暗） ===
@@ -418,7 +478,7 @@ private fun CircularScanOverlay(
 
         // === 第5层：面部轮廓线（检测到人脸时） ===
         if (hasFace) {
-            drawFaceContour(contourPoints, imageWidth, imageHeight, canvasW, canvasH, accentColor)
+            drawFaceContour(contourPoints, imageWidth, imageHeight, size.width, size.height, accentColor)
         }
     }
 }
