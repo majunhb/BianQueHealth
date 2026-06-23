@@ -36,8 +36,15 @@ class ColorAnalyzer @Inject constructor() {
         var sumB = 0f
         var count = 0
 
-        // 采样步长 4 以提升性能
-        val step = 4
+        // 自适应采样步长：小区域用更细的步长，大区域用粗步长
+        val regionW = clampedRight - clampedLeft
+        val regionH = clampedBottom - clampedTop
+        val step = when {
+            regionW < 30 || regionH < 30 -> 1  // 极小区域：逐像素
+            regionW < 60 || regionH < 60 -> 2  // 小区域（如鼻部、唇周）
+            regionW < 120 || regionH < 120 -> 3 // 中等区域
+            else -> 4                          // 大区域（如额头、脸颊）
+        }
         for (y in clampedTop until clampedBottom step step) {
             for (x in clampedLeft until clampedRight step step) {
                 val pixel = bitmap.getPixel(x, y)
@@ -88,7 +95,14 @@ class ColorAnalyzer @Inject constructor() {
         }
 
         val lValues = mutableListOf<Float>()
-        val step = 4
+        val regionW = clampedRight - clampedLeft
+        val regionH = clampedBottom - clampedTop
+        val step = when {
+            regionW < 30 || regionH < 30 -> 1
+            regionW < 60 || regionH < 60 -> 2
+            regionW < 120 || regionH < 120 -> 3
+            else -> 4
+        }
         for (y in clampedTop until clampedBottom step step) {
             for (x in clampedLeft until clampedRight step step) {
                 val pixel = bitmap.getPixel(x, y)

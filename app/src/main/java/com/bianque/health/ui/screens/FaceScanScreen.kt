@@ -593,7 +593,7 @@ private fun computeFaceKeyPoints(
     val offsetY = (canvasH - displayH) / 2f
 
     fun toScreen(p: PointF): Offset {
-        val sx = canvasW - (p.x * scale + offsetX)
+        val sx = p.x * scale + offsetX
         val sy = p.y * scale + offsetY
         return Offset(sx, sy)
     }
@@ -663,7 +663,7 @@ private fun DrawScope.drawFaceContour(
 
     val facePath = Path()
     contourPoints.forEachIndexed { index, point ->
-        val sx = canvasW - (point.x * scale + offsetX)
+        val sx = point.x * scale + offsetX
         val sy = point.y * scale + offsetY
         if (index == 0) facePath.moveTo(sx, sy) else facePath.lineTo(sx, sy)
     }

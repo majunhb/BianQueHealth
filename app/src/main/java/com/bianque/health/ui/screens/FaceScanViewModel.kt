@@ -1,5 +1,6 @@
 package com.bianque.health.ui.screens
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.graphics.Rect
@@ -13,6 +14,7 @@ import com.bianque.health.face.data.FaceMeshDetector
 import com.bianque.health.face.data.FacePreviewAnalyzer
 import com.bianque.health.face.domain.model.FaceDiagnosisResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,7 +49,8 @@ class FaceScanViewModel @Inject constructor(
     private val faceMeshDetector: FaceMeshDetector,
     private val facePreviewAnalyzer: FacePreviewAnalyzer,
     private val diagnosisCache: DiagnosisCache,
-    private val healthDao: HealthDao
+    private val healthDao: HealthDao,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FaceScanUiState())
@@ -101,9 +104,9 @@ class FaceScanViewModel @Inject constructor(
                 delay(1000)
                 _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
 
-                // 直接调用 faceMeshDetector 进行完整面诊分析
+                // 调用 MediaPipe 468点七区高精度分析（ML Kit 回退）
                 val result = withContext(Dispatchers.Default) {
-                    faceMeshDetector.detect(bitmap)
+                    faceMeshDetector.detectHybrid(appContext, bitmap)
                 }
 
                 if (result.overallComplexion == "未检测到面部") {

@@ -3,6 +3,7 @@ package com.bianque.health.base.camera
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.YuvImage
 import androidx.camera.core.CameraSelector
@@ -31,6 +32,7 @@ object CameraHelper {
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var onFrameCallback: ((Bitmap) -> Unit)? = null
     private var isBound = false
+    private var currentCameraFacing: Int = CameraSelector.LENS_FACING_BACK
 
     /**
      * 绑定摄像头预览 + 帧分析
@@ -43,6 +45,7 @@ object CameraHelper {
         onFrame: (Bitmap) -> Unit
     ) {
         onFrameCallback = onFrame
+        currentCameraFacing = cameraFacing
 
         // 如果已绑定但 lifecycle 或 preview 发生变化，先解绑再重新绑定
         if (isBound) {
@@ -94,7 +97,11 @@ object CameraHelper {
                     val bitmap = imageProxyToBitmap(imageProxy)
                     imageProxy.close()
                     bitmap?.let { bmp ->
-                        onFrameCallback?.invoke(bmp)
+                        // 前置摄像头：水平翻转，修正左右镜像
+                        val corrected = if (currentCameraFacing == CameraSelector.LENS_FACING_FRONT) {
+                            flipHorizontal(bmp)
+                        } else bmp
+                        onFrameCallback?.invoke(corrected)
                     }
                 }
             }
@@ -170,6 +177,21 @@ object CameraHelper {
         } catch (e: Exception) {
             Timber.w(e, "CameraHelper: imageProxyToBitmap failed")
             null
+        }
+    }
+
+    /**
+     * 前置摄像头水平翻转，修正左右镜像。
+     */
+    private fun flipHorizontal(bitmap: Bitmap): Bitmap {
+        return try {
+            val matrix = Matrix().apply {
+                postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+            }
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        } catch (e: Exception) {
+            Timber.w(e, "CameraHelper: flipHorizontal failed")
+            bitmap
         }
     }
 }
