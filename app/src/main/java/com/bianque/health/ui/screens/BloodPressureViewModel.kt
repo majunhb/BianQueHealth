@@ -7,7 +7,6 @@ import com.bianque.health.base.data.local.HealthDao
 import com.bianque.health.base.data.local.HealthRecordEntity
 import com.bianque.health.bp.data.BpAlertEngine
 import com.bianque.health.bp.data.BpTrendAnalyzer
-import com.bianque.health.bp.data.PpgAnalyzer
 import com.bianque.health.bp.data.QualityControlEngine
 import com.bianque.health.bp.domain.BloodPressureRepository
 import com.bianque.health.bp.domain.model.BloodPressureResult
@@ -204,7 +203,7 @@ class BloodPressureViewModel @Inject constructor(
                     healthDao.getRecordsByModule("BLOOD_PRESSURE")
                 }
                 val bpRecords = records.map { entity ->
-                    val json = org.json.JSONObject(entity.dataJson)
+                    val json = org.json.JSONObject(entity.resultJson)
                     BPRecord(
                         systolic = json.optInt("systolic", 0),
                         diastolic = json.optInt("diastolic", 0),
@@ -236,7 +235,7 @@ class BloodPressureViewModel @Inject constructor(
                 healthDao.getRecordsByModule("BLOOD_PRESSURE")
             }
             records.map { entity ->
-                val json = JSONObject(entity.dataJson)
+                val json = JSONObject(entity.resultJson)
                 BloodPressureResult(
                     systolic = json.optInt("systolic", 0),
                     diastolic = json.optInt("diastolic", 0),
@@ -264,9 +263,12 @@ class BloodPressureViewModel @Inject constructor(
                 healthDao.insertRecord(
                     HealthRecordEntity(
                         id = UUID.randomUUID().toString(),
-                        module = "BLOOD_PRESSURE",
-                        dataJson = json.toString(),
-                        timestamp = result.timestamp
+                        userId = "local_user",
+                        moduleType = "BLOOD_PRESSURE",
+                        resultJson = json.toString(),
+                        timestamp = result.timestamp,
+                        confidence = 0f,
+                        syncStatus = 0
                     )
                 )
             } catch (e: Exception) {
