@@ -9,7 +9,6 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bianque.health.R
@@ -412,31 +412,38 @@ private fun CircularScanOverlay(
         targetRadius = 0f
     }
 
-    // 平滑跟随动画（200ms lerp，避免抖动）
-    val animatedCx by animateFloatAsState(
-        targetValue = targetCx,
-        animationSpec = tween(200),
-        label = "circleCx"
-    )
-    val animatedCy by animateFloatAsState(
-        targetValue = targetCy,
-        animationSpec = tween(200),
-        label = "circleCy"
-    )
-    val animatedRadius by animateFloatAsState(
-        targetValue = targetRadius,
-        animationSpec = tween(200),
-        label = "circleRadius"
-    )
+    // 平滑跟随动画：首次 snapTo 瞬间到位，后续 animateTo 平滑过渡
+    val animatedCx = remember { Animatable(0f) }
+    val animatedCy = remember { Animatable(0f) }
+    val animatedRadius = remember { Animatable(0f) }
+    var isInitialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(targetCx, targetCy, targetRadius) {
+        if (targetCx > 0f || targetCy > 0f) {
+            if (!isInitialized) {
+                // 首次：瞬间到位，避免从 0 动画造成的跳闪
+                animatedCx.snapTo(targetCx)
+                animatedCy.snapTo(targetCy)
+                animatedRadius.snapTo(targetRadius)
+                isInitialized = true
+            } else {
+                // 后续：200ms 平滑跟随
+                launch { animatedCx.animateTo(targetCx, tween(200)) }
+                launch { animatedCy.animateTo(targetCy, tween(200)) }
+                launch { animatedRadius.animateTo(targetRadius, tween(200)) }
+            }
+        }
+    }
 
     Canvas(
         modifier = Modifier
             .fillMaxSize()
             .onSizeChanged { canvasSize = Size(it.width.toFloat(), it.height.toFloat()) }
     ) {
-        val cx = if (animatedCx > 0f) animatedCx else (size.width / 2f)
-        val cy = if (animatedCy > 0f) animatedCy else (size.height * 0.46f)
-        val radius = if (animatedRadius > 0f) animatedRadius else (min(size.width, size.height) * 0.38f)
+        // 首次渲染时 isInitialized=false，使用默认居中位置；后续使用平滑跟踪的动画值
+        val cx = if (isInitialized) animatedCx.value else (size.width / 2f)
+        val cy = if (isInitialized) animatedCy.value else (size.height * 0.46f)
+        val radius = if (isInitialized) animatedRadius.value else (min(size.width, size.height) * 0.38f)
         val rotation = rotationAnim.value
         val breathe = breatheAnim.value
         val progress = scanProgress.value
