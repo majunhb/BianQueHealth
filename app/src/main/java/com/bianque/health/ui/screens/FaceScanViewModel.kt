@@ -65,12 +65,9 @@ class FaceScanViewModel @Inject constructor(
     private var captureCooldownUntil = 0L
 
     fun analyzeFrame(bitmap: Bitmap) {
-        val now = System.currentTimeMillis()
-        if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
-        lastFrameAnalysisTime = now
-
         // 冷却期内仍更新 UI 检测状态，但不触发 autoCapture
         // （autoCapture 由 Screen 层的 captureTriggered 控制）
+        // FacePreviewAnalyzer 内部已有 200ms 节流，此处不再重复
 
         viewModelScope.launch {
             try {
@@ -103,10 +100,19 @@ class FaceScanViewModel @Inject constructor(
     }
 
     fun autoCapture(bitmap: Bitmap) {
-        if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
-        if (_uiState.value.diagnosisResult != null) return
-        if (!_uiState.value.faceFound) return
-        if (_uiState.value.detectionState != DetectionState.READY) return
+        if (_uiState.value.isScanning || _uiState.value.isAnalyzing) {
+            Timber.d("FaceScanViewModel: autoCapture skipped - already scanning/analyzing")
+            return
+        }
+        if (_uiState.value.diagnosisResult != null) {
+            Timber.d("FaceScanViewModel: autoCapture skipped - already has result")
+            return
+        }
+        if (!_uiState.value.faceFound) {
+            Timber.d("FaceScanViewModel: autoCapture skipped - face not found")
+            return
+        }
+        // Screen 层已校验 detectionState == READY，此处不再重复校验（避免状态不同步时静默失败）
 
         _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
 

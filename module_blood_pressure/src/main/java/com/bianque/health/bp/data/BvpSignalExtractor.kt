@@ -167,16 +167,19 @@ object BvpSignalExtractor {
 
         // 3. POS 算法正交投影
         // 投影矩阵 P = [0, 1, -1; -2, 1, 1] / sqrt(6)
-        val posSignal = FloatArray(n)
-        for (i in 0 until n) {
-            // Xs = G - B
-            val xs = g[i] - b[i]
-            // Ys = -2*R + G + B
-            val ys = -2f * r[i] + g[i] + b[i]
-            // α = std(Xs) / std(Ys)
-            // 简化: h = Xs + α * Ys
-            posSignal[i] = xs + ys
-        }
+        // Xs = G - B, Ys = -2*R + G + B
+        // h = Xs - α * Ys, where α = std(Xs) / std(Ys)
+        val xs = FloatArray(n) { g[it] - b[it] }
+        val ys = FloatArray(n) { -2f * r[it] + g[it] + b[it] }
+
+        // 计算 α = std(Xs) / std(Ys)
+        val xsMean = xs.average().toFloat()
+        val ysMean = ys.average().toFloat()
+        val xsStd = sqrt(xs.map { (it - xsMean) * (it - xsMean) }.average().toFloat())
+        val ysStd = sqrt(ys.map { (it - ysMean) * (it - ysMean) }.average().toFloat())
+        val alpha = if (ysStd > 1e-9f) xsStd / ysStd else 1f
+
+        val posSignal = FloatArray(n) { xs[it] - alpha * ys[it] }
 
         // 4. 带通滤波
         val filtered = butterworthBandpass(posSignal, sampleRate, BP_LOW_CUTOFF, BP_HIGH_CUTOFF)

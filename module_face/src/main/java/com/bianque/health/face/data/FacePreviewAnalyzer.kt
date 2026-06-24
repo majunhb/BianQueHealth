@@ -160,16 +160,16 @@ class FacePreviewAnalyzer @Inject constructor(
 
             val state: DetectionState
             val message: String
-            // 偏转角过大（>35°）→ 提示正对摄像头
+            // 偏转角过大（>45°）→ 提示正对摄像头（放宽阈值，前置摄像头角度估计不精确）
             val yawAbs = kotlin.math.abs(yaw)
             val rollAbs = kotlin.math.abs(roll)
-            val isFacingCamera = yawAbs < 35f && rollAbs < 35f
+            val isFacingCamera = yawAbs < 45f && rollAbs < 45f
 
             if (!isFacingCamera) {
                 state = DetectionState.POOR_QUALITY
                 message = when {
-                    yawAbs > 35f -> "请正对摄像头，避免侧脸"
-                    rollAbs > 35f -> "请摆正头部，避免歪头"
+                    yawAbs > 45f -> "请正对摄像头，避免侧脸"
+                    rollAbs > 45f -> "请摆正头部，避免歪头"
                     else -> "请将面部正对摄像头"
                 }
             } else if (faceSizeRatio < 0.03f) {

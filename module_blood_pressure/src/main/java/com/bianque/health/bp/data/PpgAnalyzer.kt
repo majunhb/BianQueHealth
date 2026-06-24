@@ -54,27 +54,33 @@ class PpgAnalyzer @Inject constructor() {
     ): BloodPressureResult = withContext(Dispatchers.Default) {
         Timber.d("PpgAnalyzer: starting rPPG analysis with %d frames", frames.size)
 
-        // 阶段 1: 质控预处理
+        // 阶段 1: 质控预处理（仅批次级别拒绝，单帧容错 3 帧连续失败）
         onProgress?.invoke(MeasurementProgress(MeasurementPhase.PREPARING, 0f, "正在检查采集质量…"))
 
         val qcResults = mutableListOf<QualityControlEngine.QcResult>()
         val validFrames = mutableListOf<Bitmap>()
+        var consecutiveRejections = 0
 
         for ((index, frame) in frames.withIndex()) {
             val qc = QualityControlEngine.evaluateFrame(frame, index == 0)
 
-            if (qc.shouldReject) {
-                Timber.w("PpgAnalyzer: frame rejected at index %d: %s", index, qc.message)
-                onProgress?.invoke(MeasurementProgress(
-                    MeasurementPhase.REJECTED, 0f,
-                    qc.message ?: "采集质量不达标",
-                    qc.score
-                ))
-                return@withContext BloodPressureResult(
-                    systolic = 0, diastolic = 0, heartRate = 0,
-                    measurementMethod = "PPG_FAILED",
-                    deviceName = "rPPG质控不合格: ${qc.message}"
-                )
+            if (qc.level == QualityControlEngine.QualityLevel.REJECTED) {
+                consecutiveRejections++
+                if (consecutiveRejections >= 3) {
+                    Timber.w("PpgAnalyzer: 3 consecutive frames rejected at index %d: %s", index, qc.message)
+                    onProgress?.invoke(MeasurementProgress(
+                        MeasurementPhase.REJECTED, 0f,
+                        qc.message ?: "采集质量不达标",
+                        qc.score
+                    ))
+                    return@withContext BloodPressureResult(
+                        systolic = 0, diastolic = 0, heartRate = 0,
+                        measurementMethod = "PPG_FAILED",
+                        deviceName = "rPPG质控不合格: ${qc.message}"
+                    )
+                }
+            } else {
+                consecutiveRejections = 0
             }
 
             qcResults.add(qc)

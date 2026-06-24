@@ -107,8 +107,8 @@ object ImageQualityAnalyzer {
                 detectionState = DetectionState.NOT_DETECTED
                 message = "画面抖动，请保持手机稳定"
             }
-            // 未检测到舌体
-            areaRatio < 0.02f -> {
+            // 未检测到舌体（需至少8%画面为舌色，防止嘴唇/皮肤误判）
+            areaRatio < 0.08f -> {
                 detectionState = DetectionState.NOT_DETECTED
                 message = "未检测到有效舌象，请重新拍摄"
             }

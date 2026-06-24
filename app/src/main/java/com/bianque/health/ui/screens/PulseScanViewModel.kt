@@ -27,9 +27,9 @@ data class PulseScanUiState(
     val isAnalyzing: Boolean = false,     // 正在分析
     val frameCount: Int = 0,              // 已采集帧数
     val maxFrames: Int = 900,             // 最大帧数（30秒）
-    val minFrames: Int = 90,              // 最小帧数（3秒）
+    val minFrames: Int = 300,             // 最小帧数（10秒，保证HRV分析所需数据量）
     val signalQuality: Float = 0f,        // 信号质量 0-1
-    val statusMessage: String = "请将面部置于镜头前，保持静止",
+    val statusMessage: String = "请将面部置于镜头前，点击开始测量",
     val diagnosisResult: PulseDiagnosisResult? = null,
     val errorMessage: String? = null,
     val timeoutSeconds: Int = 30          // 倒计时
@@ -115,7 +115,7 @@ class PulseScanViewModel @Inject constructor(
 
         try {
             val result = withContext(Dispatchers.Default) {
-                repository.analyze()
+                repository.analyzeFull()  // 使用全面分析，包含 HRV + 三部九候
             }
 
             if (result != null) {
@@ -144,7 +144,7 @@ class PulseScanViewModel @Inject constructor(
         }
     }
 
-    private fun stopCapture() {
+    fun stopCapture() {
         _uiState.value = _uiState.value.copy(isCapturing = false)
         timeoutJob?.cancel()
 

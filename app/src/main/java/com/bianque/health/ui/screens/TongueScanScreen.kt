@@ -43,7 +43,6 @@ import com.bianque.health.ui.components.DiagnosisLabel
 import com.bianque.health.ui.theme.Danger40
 import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
-import kotlinx.coroutines.delay
 import java.util.Locale
 
 private val OutlineBlue = Color(0xFF007AFF)
@@ -88,18 +87,24 @@ fun TongueScanScreen(
         }
     }
 
-    // 自动抓拍：当连续处于READY状态0.8秒后自动触发
+    // 自动抓拍：连续处于READY状态时触发（立即快照，防止过期帧）
+    var captureTriggered by remember { mutableStateOf(false) }
+    if (uiState.detectionState != DetectionState.READY) {
+        captureTriggered = false
+    }
+
     LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
         if (uiState.detectionState == DetectionState.READY
             && !uiState.isScanning
             && !uiState.isAnalyzing
             && uiState.diagnosisResult == null
+            && !captureTriggered
         ) {
-            delay(800)
-            val bitmap = capturedBitmap
-            if (bitmap != null) {
+            captureTriggered = true
+            val snapshot = capturedBitmap
+            if (snapshot != null) {
                 shutterSound.play(MediaActionSound.SHUTTER_CLICK)
-                viewModel.autoCapture(bitmap)
+                viewModel.autoCapture(snapshot)
             }
         }
     }

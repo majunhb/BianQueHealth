@@ -187,6 +187,8 @@ class BloodPressureViewModel @Inject constructor(
     }
 
     fun reset() {
+        // 回收 Bitmap 内存
+        collectedFrames.forEach { it.recycle() }
         collectedFrames.clear()
         QualityControlEngine.reset()
         _uiState.value = BPUiState(history = _uiState.value.history)

@@ -1,5 +1,6 @@
 package com.bianque.health.ui.screens
 
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.bianque.health.tongue.data.TongueFeatureExtractor
 import com.bianque.health.tongue.data.TongueSegmenter
 import com.bianque.health.tongue.domain.model.TongueDiagnosisResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +41,8 @@ class TongueScanViewModel @Inject constructor(
     private val tongueSegmenter: TongueSegmenter,
     private val tongueFeatureExtractor: TongueFeatureExtractor,
     private val diagnosisCache: DiagnosisCache,
-    private val healthDao: HealthDao
+    private val healthDao: HealthDao,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TongueScanUiState())
@@ -84,11 +87,28 @@ class TongueScanViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
 
         viewModelScope.launch {
-            // 扫描动画持续 1.5 秒
-            delay(1500)
-            _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
-
             try {
+                // 前置验证：用 TFLite/HSV 混合分割器确认画面中确实存在舌体
+                // 防止嘴唇/面部皮肤被误判为舌体而触发假阳性拍照
+                val segResult = withContext(Dispatchers.Default) {
+                    tongueSegmenter.segmentHybrid(bitmap, appContext)
+                }
+                if (segResult.tongueAreaRatio < 0.05f) {
+                    Timber.w("TongueScanViewModel: tongue area ratio too low (%.3f), rejecting capture", segResult.tongueAreaRatio)
+                    captureCooldownUntil = System.currentTimeMillis() + 2000
+                    _uiState.value = _uiState.value.copy(
+                        isScanning = false,
+                        detectionState = DetectionState.POOR_QUALITY,
+                        statusMessage = "请张嘴伸舌，舌体未检测到"
+                    )
+                    return@launch
+                }
+                Timber.d("TongueScanViewModel: tongue verified, areaRatio=%.3f, method=%s", segResult.tongueAreaRatio, segResult.method)
+
+                // 扫描动画持续 1.5 秒
+                delay(1500)
+                _uiState.value = _uiState.value.copy(isScanning = false, isAnalyzing = true)
+
                 val masked = withContext(Dispatchers.Default) { tongueSegmenter.segment(bitmap) }
                 val result = withContext(Dispatchers.Default) { tongueFeatureExtractor.extract(masked) }
                 diagnosisCache.tongueResult = result

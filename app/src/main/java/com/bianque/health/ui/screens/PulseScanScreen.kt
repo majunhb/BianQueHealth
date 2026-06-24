@@ -48,10 +48,8 @@ fun PulseScanScreen(
         onDispose { CameraHelper.unbind() }
     }
 
-    // 进入页面自动开始采集
-    LaunchedEffect(Unit) {
-        viewModel.startCapture()
-    }
+    // 进入页面等待用户手动点击开始
+    // 不自动开始采集，让用户先对准面部
 
     Scaffold(
         topBar = {
@@ -206,6 +204,25 @@ fun PulseScanScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Warm40)
                     ) {
                         Text(stringResource(R.string.retry), style = MaterialTheme.typography.titleLarge)
+                    }
+                } else if (!uiState.isCapturing && !uiState.isAnalyzing) {
+                    // 开始测量按钮（手动触发，让用户先对准面部）
+                    Button(
+                        onClick = { viewModel.startCapture() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue40)
+                    ) {
+                        Text("开始测量", style = MaterialTheme.typography.titleLarge)
+                    }
+                } else if (uiState.isCapturing && uiState.frameCount >= uiState.minFrames) {
+                    // 采集够足够帧数后显示"完成"按钮
+                    OutlinedButton(
+                        onClick = { viewModel.stopCapture() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("完成测量", style = MaterialTheme.typography.titleLarge)
                     }
                 }
             }
