@@ -117,18 +117,27 @@ fun FaceScanScreen(
         }
     }
 
-    // 自动抓拍：面部进入圆形区域后 0.8 秒自动触发
+    // 自动抓拍：面部检测到后立即快照，0.8 秒后触发（避免过期帧 + 防止重复触发）
+    var captureTriggered by remember { mutableStateOf(false) }
+
+    // 非 READY 状态时重置触发器，允许再次尝试
+    if (uiState.detectionState != DetectionState.READY) {
+        captureTriggered = false
+    }
+
     LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
         if (uiState.detectionState == DetectionState.READY
             && !uiState.isScanning
             && !uiState.isAnalyzing
             && uiState.diagnosisResult == null
+            && !captureTriggered
         ) {
+            captureTriggered = true
+            val snapshot = capturedBitmap  // 立即快照，避免 800ms 后帧过期
             delay(800)
-            val bitmap = capturedBitmap
-            if (bitmap != null) {
+            if (snapshot != null) {
                 shutterSound.play(MediaActionSound.SHUTTER_CLICK)
-                viewModel.autoCapture(bitmap)
+                viewModel.autoCapture(snapshot)
             }
         }
     }

@@ -403,13 +403,43 @@ fun BloodPressureScreen(
                 }
             }
         } else {
-            // ====== 初始空闲视图 ======
+            // ====== 初始空闲视图 / 错误提示 ======
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding)
                     .background(SurfaceDark),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 错误信息（分析失败时展示）
+                uiState.errorMessage?.let { msg ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = RppgRed.copy(alpha = 0.15f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("⚠️ 测量失败", color = RppgRed, fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(8.dp))
+                                Text(msg, color = RppgRed.copy(alpha = 0.8f),
+                                    fontSize = 14.sp, textAlign = TextAlign.Center)
+                                Spacer(Modifier.height(12.dp))
+                                OutlinedButton(
+                                    onClick = { viewModel.reset() },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = RppgCyan)
+                                ) {
+                                    Text("重新测量")
+                                }
+                            }
+                        }
+                    }
+                }
                 // 免责声明
                 item {
                     Card(
@@ -671,13 +701,31 @@ private fun HistoryItem(record: BPRecord) {
 }
 
 /**
- * RGBA_8888 ImageProxy → Bitmap
+ * RGBA_8888 ImageProxy → ARGB_8888 Bitmap（含通道转换）
+ *
+ * CameraX 输出 RGBA_8888（byte0=R, byte1=G, byte2=B, byte3=A），
+ * Bitmap.Config.ARGB_8888 期望（byte0=A, byte1=R, byte2=G, byte3=B）。
+ * copyPixelsFromBuffer 不做通道转换，需手动交换。
  */
 private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
     return try {
         val buffer = imageProxy.planes[0].buffer
         val bytes = ByteArray(buffer.remaining())
         buffer.get(bytes)
+
+        // RGBA → ARGB 通道转换：每个像素旋转 4 字节
+        for (i in bytes.indices step 4) {
+            if (i + 3 >= bytes.size) break
+            val r = bytes[i]
+            val g = bytes[i + 1]
+            val b = bytes[i + 2]
+            val a = bytes[i + 3]
+            bytes[i] = a
+            bytes[i + 1] = r
+            bytes[i + 2] = g
+            bytes[i + 3] = b
+        }
+
         val bitmap = Bitmap.createBitmap(imageProxy.width, imageProxy.height, Bitmap.Config.ARGB_8888)
         bitmap.copyPixelsFromBuffer(java.nio.ByteBuffer.wrap(bytes))
         bitmap

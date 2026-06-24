@@ -111,6 +111,9 @@ class BloodPressureViewModel @Inject constructor(
 
     /** 手动触发分析 */
     fun analyzeAndFinish() {
+        // 双重调用防护
+        if (_uiState.value.isAnalyzing) return
+
         val frames = collectedFrames.toList()
         if (frames.isEmpty()) {
             _uiState.value = _uiState.value.copy(

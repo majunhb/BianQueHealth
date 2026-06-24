@@ -69,7 +69,8 @@ class FaceScanViewModel @Inject constructor(
         if (now - lastFrameAnalysisTime < frameAnalysisIntervalMs) return
         lastFrameAnalysisTime = now
 
-        if (now < captureCooldownUntil) return
+        // 冷却期内仍更新 UI 检测状态，但不触发 autoCapture
+        // （autoCapture 由 Screen 层的 captureTriggered 控制）
 
         viewModelScope.launch {
             try {
@@ -92,6 +93,11 @@ class FaceScanViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Timber.w(e, "FaceScanViewModel: frame analysis failed")
+                _uiState.value = _uiState.value.copy(
+                    faceFound = false,
+                    detectionState = DetectionState.NOT_DETECTED,
+                    statusMessage = "检测异常，请稍后重试"
+                )
             }
         }
     }
@@ -100,6 +106,7 @@ class FaceScanViewModel @Inject constructor(
         if (_uiState.value.isScanning || _uiState.value.isAnalyzing) return
         if (_uiState.value.diagnosisResult != null) return
         if (!_uiState.value.faceFound) return
+        if (_uiState.value.detectionState != DetectionState.READY) return
 
         _uiState.value = _uiState.value.copy(isScanning = true, errorMessage = null)
 
