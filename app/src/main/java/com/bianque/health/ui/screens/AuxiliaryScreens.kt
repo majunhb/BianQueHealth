@@ -13,18 +13,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bianque.health.R
+import com.bianque.health.content.domain.model.*
+import com.bianque.health.content.domain.repository.ContentRepository
 import com.bianque.health.ui.components.MedicalDisclaimer
 import com.bianque.health.ui.theme.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 // ─── 药膳食疗 ──────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DietScreen(onBack: () -> Unit) {
+    val viewModel: DietViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
     val constitutions = listOf("平和质", "气虚质", "阳虚质", "阴虚质", "痰湿质", "湿热质", "血瘀质", "气郁质", "特禀质")
     var selected by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(selected) {
+        viewModel.loadData(selected)
+    }
 
     Scaffold(
         topBar = {
@@ -37,32 +51,118 @@ fun DietScreen(onBack: () -> Unit) {
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                Text("选择您的体质，AI 将为您推荐适合的食疗方案", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("选择您的体质，为您推荐适合的食疗方案", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     constitutions.take(5).forEach { c ->
-                        FilterChip(selected = selected == c, onClick = { selected = if (selected == c) null else c }, label = { Text(c, fontSize = 12.sp) })
+                        FilterChip(selected = selected == c, onClick = {
+                            selected = if (selected == c) null else c
+                        }, label = { Text(c, fontSize = 12.sp) })
                     }
                 }
                 Spacer(Modifier.height(4.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     constitutions.drop(5).forEach { c ->
-                        FilterChip(selected = selected == c, onClick = { selected = if (selected == c) null else c }, label = { Text(c, fontSize = 12.sp) })
+                        FilterChip(selected = selected == c, onClick = {
+                            selected = if (selected == c) null else c
+                        }, label = { Text(c, fontSize = 12.sp) })
                     }
                 }
             }
             item { Spacer(Modifier.height(8.dp)) }
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("内容建设中", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Orange40)
-                        Spacer(Modifier.height(8.dp))
-                        Text("药膳食疗模块正在搭建中，将采用「国家药典数据库 + 经典食疗方 + LLM 个性化推荐」混合模式。\n\n第一阶段：人工整理《药典》药材数据 + 经典食疗方导入 Excel\n第二阶段：接入 RAG 系统，根据体质诊断结果智能推荐\n第三阶段：社区 UGC 反馈，优化推荐效果", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            when (state) {
+                is DietState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Orange40)
+                        }
+                    }
+                }
+                is DietState.Success -> {
+                    val recipes = (state as DietState.Success).recipes
+                    if (recipes.isEmpty()) {
+                        item {
+                            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                Column(modifier = Modifier.padding(20.dp)) {
+                                    Text("暂无匹配的食疗方", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                    items(recipes) { recipe ->
+                        DietRecipeCard(recipe)
+                    }
+                }
+                is DietState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as DietState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun DietRecipeCard(recipe: DietRecipe) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(recipe.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("来源：${recipe.source}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Text("食材", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            recipe.ingredients.forEach { ing ->
+                Text("· ${ing.name} ${ing.dosage}", fontSize = 14.sp)
+            }
+
+            Text("做法", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            recipe.steps.forEachIndexed { i, step ->
+                Text("${i + 1}. $step", fontSize = 14.sp)
+            }
+
+            Text("功效：${recipe.efficacy}", fontSize = 14.sp)
+            if (recipe.contraindications.isNotBlank()) {
+                Text("禁忌：${recipe.contraindications}", fontSize = 14.sp, color = MaterialTheme.colorScheme.error)
+            }
+
+            if (recipe.constitutionFit.isNotEmpty()) {
+                Text("适用体质：${recipe.constitutionFit.joinToString("、")}", fontSize = 12.sp, color = Orange40)
+            }
+        }
+    }
+}
+
+sealed class DietState {
+    object Loading : DietState()
+    data class Success(val recipes: List<DietRecipe>) : DietState()
+    data class Error(val message: String) : DietState()
+}
+
+@HiltViewModel
+class DietViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<DietState>(DietState.Loading)
+    val state: State<DietState> = _state
+
+    fun loadData(constitution: String?) {
+        viewModelScope.launch {
+            _state.value = DietState.Loading
+            try {
+                val recipes = contentRepository.getDietRecipes(constitution)
+                _state.value = DietState.Success(recipes)
+            } catch (e: Exception) {
+                _state.value = DietState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
@@ -71,7 +171,14 @@ fun DietScreen(onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeridianScreen(onBack: () -> Unit) {
-    var query by remember { mutableStateOf("") }
+    val viewModel: MeridianViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+    var selectedMeridian by remember { mutableStateOf<String?>(null) }
+    val meridians = viewModel.meridians
+
+    LaunchedEffect(selectedMeridian) {
+        viewModel.loadData(selectedMeridian)
+    }
 
     Scaffold(
         topBar = {
@@ -84,24 +191,130 @@ fun MeridianScreen(onBack: () -> Unit) {
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                OutlinedTextField(
-                    value = query, onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("输入症状，如「头痛按哪里」") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Text("选择经络查看穴位（共 ${meridians.size} 条经络）", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            // Split 14 meridians into two rows of 7
             item {
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("内容建设中", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Blue40)
-                        Spacer(Modifier.height(8.dp))
-                        Text("经络穴位模块正在搭建中，将采用「GB/T 12346-2021 标准穴位数据 + 3D人体模型 + LLM症状反查」混合模式。\n\n第一阶段：导入国家标准穴位数据（名称/定位/归经/主治）\n第二阶段：接入3D人体模型，可视化展示穴位位置\n第三阶段：LLM 支持症状→穴位智能反查", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    meridians.take(7).forEach { m ->
+                        FilterChip(
+                            selected = selectedMeridian == m,
+                            onClick = { selectedMeridian = if (selectedMeridian == m) null else m },
+                            label = { Text(m, fontSize = 11.sp) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    meridians.drop(7).forEach { m ->
+                        FilterChip(
+                            selected = selectedMeridian == m,
+                            onClick = { selectedMeridian = if (selectedMeridian == m) null else m },
+                            label = { Text(m, fontSize = 11.sp) }
+                        )
                     }
                 }
             }
+            item { Spacer(Modifier.height(8.dp)) }
+
+            when (state) {
+                is MeridianState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Blue40)
+                        }
+                    }
+                }
+                is MeridianState.Success -> {
+                    val acupoints = (state as MeridianState.Success).acupoints
+                    if (acupoints.isEmpty()) {
+                        item {
+                            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                Column(modifier = Modifier.padding(20.dp)) {
+                                    Text("暂无穴位数据", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                    items(acupoints) { acupoint ->
+                        AcupointCard(acupoint)
+                    }
+                }
+                is MeridianState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as MeridianState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun AcupointCard(acupoint: Acupoint) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(acupoint.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Text("${acupoint.pinyin} · ${acupoint.meridian}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("定位：${acupoint.location}", fontSize = 14.sp)
+
+            if (acupoint.indications.isNotEmpty()) {
+                Text("主治：", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                acupoint.indications.forEach { ind ->
+                    Text("· $ind", fontSize = 14.sp)
+                }
+            }
+
+            Text("按摩方法：${acupoint.massageMethod}", fontSize = 14.sp)
+            Text("建议时长：${acupoint.massageDuration}", fontSize = 12.sp, color = Blue40)
+
+            if (!acupoint.caution.isNullOrBlank()) {
+                Text("注意：${acupoint.caution}", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
+            }
+
+            Text("编码：GB/T 12346-2021 ${acupoint.gbCode}", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+        }
+    }
+}
+
+sealed class MeridianState {
+    object Loading : MeridianState()
+    data class Success(val acupoints: List<Acupoint>) : MeridianState()
+    data class Error(val message: String) : MeridianState()
+}
+
+@HiltViewModel
+class MeridianViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<MeridianState>(MeridianState.Loading)
+    val state: State<MeridianState> = _state
+    val meridians: List<String> = listOf(
+        "手太阴肺经", "手阳明大肠经", "足阳明胃经", "足太阴脾经",
+        "手少阴心经", "手太阳小肠经", "足太阳膀胱经", "足少阴肾经",
+        "手厥阴心包经", "手少阳三焦经", "足少阳胆经", "足厥阴肝经",
+        "任脉", "督脉"
+    )
+
+    fun loadData(meridian: String?) {
+        viewModelScope.launch {
+            _state.value = MeridianState.Loading
+            try {
+                val acupoints = contentRepository.getAcupoints(meridian)
+                _state.value = MeridianState.Success(acupoints)
+            } catch (e: Exception) {
+                _state.value = MeridianState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
@@ -110,12 +323,12 @@ fun MeridianScreen(onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthQuizScreen(onBack: () -> Unit) {
-    val quizzes = listOf(
-        Triple("中医体质分类", "中华中医药学会标准", "9种体质分类自测"),
-        Triple("PHQ-9 抑郁筛查", "国际通用量表", "9题快速筛查抑郁情绪"),
-        Triple("GAD-7 焦虑筛查", "国际通用量表", "7题快速筛查焦虑情绪"),
-        Triple("睡眠质量评估", "PSQI 匹兹堡量表", "全面评估睡眠质量")
-    )
+    val viewModel: HealthQuizViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadQuizzes()
+    }
 
     Scaffold(
         topBar = {
@@ -127,20 +340,75 @@ fun HealthQuizScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text("选择量表进行自测，结果仅供健康趋势参考", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            items(quizzes) { (title, source, desc) ->
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(4.dp))
-                        Text("来源：$source", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(desc, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = {}, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Warm40)) { Text("开始测试") }
+            item {
+                Text("选择量表进行自测，结果仅供健康趋势参考", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            when (state) {
+                is QuizListState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Warm40)
+                        }
+                    }
+                }
+                is QuizListState.Success -> {
+                    items((state as QuizListState.Success).quizzes) { quiz ->
+                        HealthQuizCard(quiz)
+                    }
+                }
+                is QuizListState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as QuizListState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun HealthQuizCard(quiz: HealthQuiz) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(quiz.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text("来源：${quiz.source}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(quiz.description, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(8.dp))
+            Text("共 ${quiz.questions.size} 题", fontSize = 13.sp, color = Warm40)
+        }
+    }
+}
+
+sealed class QuizListState {
+    object Loading : QuizListState()
+    data class Success(val quizzes: List<HealthQuiz>) : QuizListState()
+    data class Error(val message: String) : QuizListState()
+}
+
+@HiltViewModel
+class HealthQuizViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<QuizListState>(QuizListState.Loading)
+    val state: State<QuizListState> = _state
+
+    fun loadQuizzes() {
+        viewModelScope.launch {
+            try {
+                val quizzes = contentRepository.getQuizzes()
+                _state.value = QuizListState.Success(quizzes)
+            } catch (e: Exception) {
+                _state.value = QuizListState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
@@ -149,6 +417,13 @@ fun HealthQuizScreen(onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiseaseScreen(onBack: () -> Unit) {
+    val viewModel: DiseaseViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadData(null)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -159,16 +434,103 @@ fun DiseaseScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("内容建设中", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Danger40)
-                        Spacer(Modifier.height(8.dp))
-                        Text("疾病图解模块正在搭建中，将采用「ICD-11 国际疾病分类 + 中医辨证分型 + LLM 通俗解读」混合模式。\n\n严禁自行诊断用药，AI 仅提供科普参考。\n\n第一阶段：导入 ICD-11 编码 + 中医对应病名\n第二阶段：构建疾病-症状-证型知识图谱\n第三阶段：LLM 预问诊模拟 + 就医指引", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (state) {
+                is DiseaseListState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Danger40)
+                        }
+                    }
+                }
+                is DiseaseListState.Success -> {
+                    val diseases = (state as DiseaseListState.Success).diseases
+                    items(diseases) { disease ->
+                        DiseaseCard(disease)
+                    }
+                }
+                is DiseaseListState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as DiseaseListState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun DiseaseCard(disease: DiseaseEntry) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(disease.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                if (disease.tcmName.isNotBlank() && disease.tcmName != disease.name) {
+                    Text("中医：${disease.tcmName}", fontSize = 12.sp, color = Danger40)
+                }
+            }
+            Text("ICD-11：${disease.icdCode}", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+
+            if (disease.overview.isNotBlank()) {
+                Text("概述", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(disease.overview, fontSize = 14.sp)
+            }
+
+            if (disease.symptoms.isNotEmpty()) {
+                Text("常见症状", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                disease.symptoms.forEach { sym ->
+                    Text("· $sym", fontSize = 14.sp)
+                }
+            }
+
+            if (disease.tcmSyndrome.isNotEmpty()) {
+                Text("中医证型", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(disease.tcmSyndrome.joinToString("、"), fontSize = 14.sp)
+            }
+
+            if (disease.prevention.isNotBlank()) {
+                Text("预防建议", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(disease.prevention, fontSize = 14.sp)
+            }
+
+            if (disease.whenToSeeDoctor.isNotBlank()) {
+                Text("就医提示", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = Danger40)
+                Text(disease.whenToSeeDoctor, fontSize = 14.sp)
+            }
+
+            Text(disease.disclaimer, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+        }
+    }
+}
+
+sealed class DiseaseListState {
+    object Loading : DiseaseListState()
+    data class Success(val diseases: List<DiseaseEntry>) : DiseaseListState()
+    data class Error(val message: String) : DiseaseListState()
+}
+
+@HiltViewModel
+class DiseaseViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<DiseaseListState>(DiseaseListState.Loading)
+    val state: State<DiseaseListState> = _state
+
+    fun loadData(category: String?) {
+        viewModelScope.launch {
+            try {
+                val diseases = contentRepository.getDiseases(category)
+                _state.value = DiseaseListState.Success(diseases)
+            } catch (e: Exception) {
+                _state.value = DiseaseListState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
@@ -177,6 +539,13 @@ fun DiseaseScreen(onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HerbScreen(onBack: () -> Unit) {
+    val viewModel: HerbViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadData(null)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -187,16 +556,82 @@ fun HerbScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("内容建设中", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Green40)
-                        Spacer(Modifier.height(8.dp))
-                        Text("中药图鉴模块正在搭建中，将采用「《药典》中药材数据库 + 高清植物图库 + LLM 鉴别口诀」混合模式。\n\n第一阶段：人工整理《药典》药材数据，导入 Excel（名称/性味/归经/功效/用量）\n第二阶段：引入高清药材图库（避免版权问题）\n第三阶段：LLM 生成鉴别顺口溜 + 相似药材对比表", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (state) {
+                is HerbListState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Green40)
+                        }
+                    }
+                }
+                is HerbListState.Success -> {
+                    val herbs = (state as HerbListState.Success).herbs
+                    items(herbs) { herb ->
+                        HerbCard(herb)
+                    }
+                }
+                is HerbListState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as HerbListState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun HerbCard(herb: HerbEntry) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(herb.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Text(herb.family, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("拉丁学名：${herb.latinName}", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+            Text("药用部位：${herb.medicinalPart}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Text("性味：${herb.nature}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            Text("归经：${herb.meridian}", fontSize = 14.sp)
+            Text("功效：${herb.efficacy}", fontSize = 14.sp)
+            Text("常用剂量：${herb.dosage}", fontSize = 14.sp)
+
+            if (herb.similarHerbs.isNotEmpty()) {
+                Text("易混淆药材：${herb.similarHerbs.joinToString("、")}", fontSize = 13.sp, color = Green40)
+            }
+        }
+    }
+}
+
+sealed class HerbListState {
+    object Loading : HerbListState()
+    data class Success(val herbs: List<HerbEntry>) : HerbListState()
+    data class Error(val message: String) : HerbListState()
+}
+
+@HiltViewModel
+class HerbViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<HerbListState>(HerbListState.Loading)
+    val state: State<HerbListState> = _state
+
+    fun loadData(family: String?) {
+        viewModelScope.launch {
+            try {
+                val herbs = contentRepository.getHerbs(family)
+                _state.value = HerbListState.Success(herbs)
+            } catch (e: Exception) {
+                _state.value = HerbListState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
@@ -205,6 +640,13 @@ fun HerbScreen(onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrescriptionScreen(onBack: () -> Unit) {
+    val viewModel: PrescriptionViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadData(null)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -215,16 +657,85 @@ fun PrescriptionScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("内容建设中", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Purple40)
-                        Spacer(Modifier.height(8.dp))
-                        Text("名方今用模块正在搭建中，将采用「经典古籍数字化 + 古方今译 LLM + 现代应用推荐」混合模式。\n\n第一阶段：人工整理《伤寒杂病论》《本草纲目》等公版经典方剂\n第二阶段：LLM 古方今译 + 现代应用解读\n第三阶段：结合体质诊断结果，个性化推荐名方", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (state) {
+                is FormulaListState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Purple40)
+                        }
+                    }
+                }
+                is FormulaListState.Success -> {
+                    val formulas = (state as FormulaListState.Success).formulas
+                    items(formulas) { formula ->
+                        FormulaCard(formula)
+                    }
+                }
+                is FormulaListState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as FormulaListState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun FormulaCard(formula: ClassicFormula) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(formula.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Text(formula.source, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Text("原文", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            Text(formula.originalText, fontSize = 14.sp, fontStyle = FontStyle.Italic)
+
+            Text("组成", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            formula.composition.forEach { ing ->
+                Text("· ${ing.name} ${ing.dosage}", fontSize = 14.sp)
+            }
+
+            Text("原方适应症：${formula.indications}", fontSize = 14.sp)
+
+            if (formula.modernUse.isNotBlank()) {
+                Text("现代应用：${formula.modernUse}", fontSize = 14.sp, color = Purple40)
+            }
+        }
+    }
+}
+
+sealed class FormulaListState {
+    object Loading : FormulaListState()
+    data class Success(val formulas: List<ClassicFormula>) : FormulaListState()
+    data class Error(val message: String) : FormulaListState()
+}
+
+@HiltViewModel
+class PrescriptionViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<FormulaListState>(FormulaListState.Loading)
+    val state: State<FormulaListState> = _state
+
+    fun loadData(source: String?) {
+        viewModelScope.launch {
+            try {
+                val formulas = contentRepository.getClassicFormulas(source)
+                _state.value = FormulaListState.Success(formulas)
+            } catch (e: Exception) {
+                _state.value = FormulaListState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
@@ -233,14 +744,12 @@ fun PrescriptionScreen(onBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthTipsScreen(onBack: () -> Unit) {
-    val solarTerms = listOf(
-        "立春" to "春回大地，万物复苏",
-        "雨水" to "春雨贵如油",
-        "惊蛰" to "春雷乍动，万物生长",
-        "春分" to "昼夜平分，阴阳平衡",
-        "清明" to "天清地明，踏青时节",
-        "谷雨" to "雨生百谷，春夏之交"
-    )
+    val viewModel: HealthTipsViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadArticles(null, null)
+    }
 
     Scaffold(
         topBar = {
@@ -252,31 +761,79 @@ fun HealthTipsScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                Text("节气养生 · 每日推送 · 权威科普", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            item { Text("二十四节气养生", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            items(solarTerms) { (term, desc) ->
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(term, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(desc, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            when (state) {
+                is HealthTipsListState.Loading -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF00838F))
                         }
-                        Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF00838F))
+                    }
+                }
+                is HealthTipsListState.Success -> {
+                    val articles = (state as HealthTipsListState.Success).articles
+                    items(articles) { article ->
+                        HealthArticleCard(article)
+                    }
+                }
+                is HealthTipsListState.Error -> {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text("加载失败", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                Text((state as HealthTipsListState.Error).message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F7FA))) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text("内容来源", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF00838F))
-                        Spacer(Modifier.height(8.dp))
-                        Text("养生科普采用「权威指南 + LLM 润色」混合模式：\n\n- 地基：《中国居民膳食指南》、三甲医院科普文章 RAG 检索\n- 应用层：LLM 将专业内容通俗化、趣味化\n- 节气推送：结合二十四节气，自动生成当日养生小贴士\n- 每日更新：关注热点健康话题，反向补充内容库", fontSize = 14.sp, color = Color(0xFF004D40))
-                    }
-                }
-            }
+
             item { MedicalDisclaimer() }
+        }
+    }
+}
+
+@Composable
+fun HealthArticleCard(article: HealthArticle) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(article.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (article.subtitle.isNotBlank()) {
+                Text(article.subtitle, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("来源：${article.source}", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+            if (article.solarTerm != null) {
+                FilterChip(
+                    selected = true,
+                    onClick = {},
+                    label = { Text(article.solarTerm, fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFFE0F7FA))
+                )
+            }
+        }
+    }
+}
+
+sealed class HealthTipsListState {
+    object Loading : HealthTipsListState()
+    data class Success(val articles: List<HealthArticle>) : HealthTipsListState()
+    data class Error(val message: String) : HealthTipsListState()
+}
+
+@HiltViewModel
+class HealthTipsViewModel @Inject constructor(
+    private val contentRepository: ContentRepository
+) : ViewModel() {
+    private val _state = mutableStateOf<HealthTipsListState>(HealthTipsListState.Loading)
+    val state: State<HealthTipsListState> = _state
+
+    fun loadArticles(solarTerm: String?, tags: List<String>?) {
+        viewModelScope.launch {
+            try {
+                val articles = contentRepository.getArticles(solarTerm, tags)
+                _state.value = HealthTipsListState.Success(articles)
+            } catch (e: Exception) {
+                _state.value = HealthTipsListState.Error(e.message ?: "未知错误")
+            }
         }
     }
 }
