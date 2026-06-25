@@ -801,8 +801,7 @@ fun HealthArticleCard(article: HealthArticle) {
                 Text(article.subtitle, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text("来源：${article.source}", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
-            if (article.solarTerm != null) {
-                val term = article.solarTerm
+            article.solarTerm?.let { term ->
                 FilterChip(
                     selected = true,
                     onClick = {},
