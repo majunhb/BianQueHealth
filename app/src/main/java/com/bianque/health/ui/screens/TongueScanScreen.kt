@@ -12,18 +12,24 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.FlipCameraAndroid
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -45,10 +51,10 @@ import com.bianque.health.ui.theme.Green40
 import com.bianque.health.ui.theme.Warm40
 import java.util.Locale
 
-private val OutlineBlue = Color(0xFF007AFF)
 private val OutlineGray = Color(0xFFCCCCCC)
 private val OutlineYellow = Color(0xFFFFCC00)
 private val OutlineGreen = Color(0xFF00CC66)
+private val ShutterOrange = Color(0xFFF4511E)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,11 +67,8 @@ fun TongueScanScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
-    // 语音播报
     val tts = remember {
-        TextToSpeech(context, null).apply {
-            language = Locale.CHINESE
-        }
+        TextToSpeech(context, null).apply { language = Locale.CHINESE }
     }
     var lastSpokenMsg by remember { mutableStateOf("") }
     LaunchedEffect(uiState.statusMessage) {
@@ -76,7 +79,6 @@ fun TongueScanScreen(
         }
     }
 
-    // 快门音效
     val shutterSound = remember { MediaActionSound() }
 
     DisposableEffect(Unit) {
@@ -87,18 +89,13 @@ fun TongueScanScreen(
         }
     }
 
-    // 自动抓拍：连续处于READY状态时触发（立即快照，防止过期帧）
+    // 自动抓拍
     var captureTriggered by remember { mutableStateOf(false) }
-    if (uiState.detectionState != DetectionState.READY) {
-        captureTriggered = false
-    }
-
+    if (uiState.detectionState != DetectionState.READY) { captureTriggered = false }
     LaunchedEffect(uiState.detectionState, uiState.isScanning, uiState.isAnalyzing) {
         if (uiState.detectionState == DetectionState.READY
-            && !uiState.isScanning
-            && !uiState.isAnalyzing
-            && uiState.diagnosisResult == null
-            && !captureTriggered
+            && !uiState.isScanning && !uiState.isAnalyzing
+            && uiState.diagnosisResult == null && !captureTriggered
         ) {
             captureTriggered = true
             val snapshot = capturedBitmap
@@ -112,29 +109,35 @@ fun TongueScanScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.tongue_scan_title)) },
+                title = { Text(stringResource(R.string.tongue_scan_title), color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        CameraHelper.unbind()
-                        onBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    IconButton(onClick = { CameraHelper.unbind(); onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A2E)),
+                actions = {
+                    IconButton(onClick = { /* 相册导入 */ }) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = "相册", tint = Color.White.copy(alpha = 0.7f))
+                    }
+                }
             )
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            Box(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                if (uiState.diagnosisResult == null && uiState.errorMessage == null) {
+            if (uiState.diagnosisResult == null && uiState.errorMessage == null) {
+                // ── 拍摄区域 ──
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // 深色背景底
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                            .background(Color(0xFF1A1A2E))
+                    )
+
+                    // 相机预览
                     AndroidView(
                         factory = { ctx ->
                             PreviewView(ctx).apply {
@@ -160,76 +163,148 @@ fun TongueScanScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    TongueOutlineOverlay(detectionState = uiState.detectionState)
+                    // 暗色遮罩层（半透明覆层）
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val w = size.width
+                        val h = size.height
+                        val guideW = w * 0.55f
+                        val guideH = h * 0.65f
+                        val guideLeft = (w - guideW) / 2f
+                        val guideTop = (h - guideH) / 2f - h * 0.03f
+                        val guideRight = guideLeft + guideW
+                        val guideBottom = guideTop + guideH
+                        val radius = 40f
 
+                        // 四周暗色遮罩
+                        val path = Path().apply {
+                            addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, w, h, 0f, 0f), Path.Direction.CW)
+                            addRoundRect(androidx.compose.ui.geometry.RoundRect(guideLeft, guideTop, guideRight, guideBottom, radius, radius), Path.Direction.CCW)
+                        }
+                        drawPath(path, Color.Black.copy(alpha = 0.6f))
+
+                        // 引导框
+                        val frameColor = when (uiState.detectionState) {
+                            DetectionState.NOT_DETECTED -> Color.White.copy(alpha = 0.4f)
+                            DetectionState.POOR_QUALITY -> OutlineYellow
+                            DetectionState.READY -> OutlineGreen
+                        }
+                        drawRoundRect(
+                            frameColor, guideLeft, guideTop, guideRight - guideLeft, guideBottom - guideTop,
+                            radius, style = Stroke(width = 3f)
+                        )
+                        // 内框
+                        drawRoundRect(
+                            frameColor.copy(alpha = 0.3f), guideLeft + 6f, guideTop + 6f,
+                            guideRight - guideLeft - 12f, guideBottom - guideTop - 12f,
+                            radius - 6f, style = Stroke(width = 1.5f)
+                        )
+
+                        // 四角标记
+                        val cornerLen = 25f
+                        val cornerStroke = 3f
+                        fun drawCornerMark(cx: Float, cy: Float, dx: Float, dy: Float) {
+                            drawLine(frameColor, Offset(cx, cy), Offset(cx + dx, cy), cornerStroke)
+                            drawLine(frameColor, Offset(cx, cy), Offset(cx, cy + dy), cornerStroke)
+                        }
+                        drawCornerMark(guideLeft + 8f, guideTop + 8f, cornerLen, cornerLen)
+                        drawCornerMark(guideRight - 8f, guideTop + 8f, -cornerLen, cornerLen)
+                        drawCornerMark(guideLeft + 8f, guideBottom - 8f, cornerLen, -cornerLen)
+                        drawCornerMark(guideRight - 8f, guideBottom - 8f, -cornerLen, -cornerLen)
+                    }
+
+                    // 顶部引导文字
+                    Column(
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "请拍摄舌面",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            uiState.statusMessage ?: "请将舌头伸出，对齐引导框",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    // 舌体轮廓剪影
+                    TongueSilhouette()
+
+                    // 扫描动画
                     if (uiState.isScanning) {
                         TongueScanAnimation()
                     }
 
-                    Column(
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    // 隐私标识
+                    Surface(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White.copy(alpha = 0.15f)
                     ) {
-                        val outlineColor = when (uiState.detectionState) {
-                            DetectionState.NOT_DETECTED -> OutlineGray
-                            DetectionState.POOR_QUALITY -> OutlineYellow
-                            DetectionState.READY -> OutlineGreen
-                        }
                         Text(
-                            text = uiState.statusMessage ?: "请张嘴伸舌，对齐轮廓线",
-                            color = outlineColor,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                            "🔒 数据本地处理，不上传云端",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 10.sp
                         )
                     }
-                // 隐私保护标识
+                }
+
+                // ── 底部操作栏 ──
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                        .background(Color(0xFF1A1A2E))
+                        .padding(horizontal = 32.dp, vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // 翻转摄像头
+                    IconButton(
+                        onClick = { /* 翻转摄像头 */ },
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Icon(
+                            Icons.Default.FlipCameraAndroid,
+                            contentDescription = "翻转",
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    // 橙色快门按钮
                     Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Green40.copy(alpha = 0.85f)
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape,
+                        color = ShutterOrange,
+                        shadowElevation = 8.dp
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("🔒", fontSize = 10.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.privacy_badge_local),
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                        Box(contentAlignment = Alignment.Center) {
+                            Surface(
+                                modifier = Modifier.size(62.dp),
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.15f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.CameraAlt,
+                                        contentDescription = "拍照",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(30.dp)
+                                    )
+                                }
+                            }
                         }
                     }
-                } else if (uiState.diagnosisResult != null) {
-                    TongueDiagnosisResultCard(result = uiState.diagnosisResult!!)
-                } else if (uiState.errorMessage != null) {
-                    TongueErrorCard(message = uiState.errorMessage!!) { viewModel.clearError() }
-                }
 
-                if (uiState.isAnalyzing) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(stringResource(R.string.analyzing_tongue), color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
+                    // 占位（保持快门居中）
+                    Spacer(Modifier.size(48.dp))
                 }
-            }
-
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                if (uiState.diagnosisResult != null) {
+            } else if (uiState.diagnosisResult != null) {
+                TongueDiagnosisResultCard(result = uiState.diagnosisResult!!)
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Button(
                         onClick = { viewModel.reset() },
                         modifier = Modifier.fillMaxWidth(),
@@ -239,31 +314,67 @@ fun TongueScanScreen(
                         Text(stringResource(R.string.retry), style = MaterialTheme.typography.titleLarge)
                     }
                 }
+            } else if (uiState.errorMessage != null) {
+                TongueErrorCard(message = uiState.errorMessage!!) { viewModel.clearError() }
+            }
+
+            if (uiState.isAnalyzing) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(48.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(stringResource(R.string.analyzing_tongue), color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
             }
         }
     }
 }
 
+// ─── 舌体剪影 ──────────────────────────────────────────────────
 @Composable
-private fun TongueOutlineOverlay(detectionState: DetectionState) {
-    val outlineColor = when (detectionState) {
-        DetectionState.NOT_DETECTED -> OutlineGray
-        DetectionState.POOR_QUALITY -> OutlineYellow
-        DetectionState.READY -> OutlineGreen
-    }
-
+private fun TongueSilhouette() {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-        val ovalWidth = canvasWidth * 0.4f
-        val ovalHeight = canvasHeight * 0.55f
-        val topLeft = Offset((canvasWidth - ovalWidth) / 2f, (canvasHeight - ovalHeight) / 2f)
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h * 0.42f
 
-        drawOval(color = outlineColor.copy(alpha = 0.3f), topLeft = topLeft, size = Size(ovalWidth, ovalHeight), style = Stroke(width = 4f))
-        drawOval(color = outlineColor.copy(alpha = 0.15f), topLeft = Offset(topLeft.x + 8f, topLeft.y + 8f), size = Size(ovalWidth - 16f, ovalHeight - 16f), style = Stroke(width = 2f))
+        // 简易人脸轮廓剪影
+        val facePath = Path().apply {
+            // 头部轮廓
+            addOval(androidx.compose.ui.geometry.Rect(
+                cx - w * 0.18f, cy - h * 0.22f,
+                cx + w * 0.18f, cy + h * 0.18f
+            ))
+        }
+        drawPath(facePath, Color.White.copy(alpha = 0.06f))
+
+        // 口腔区域（张嘴示意）
+        val mouthPath = Path().apply {
+            addOval(androidx.compose.ui.geometry.Rect(
+                cx - w * 0.08f, cy + h * 0.06f,
+                cx + w * 0.08f, cy + h * 0.14f
+            ))
+        }
+        drawPath(mouthPath, Color.White.copy(alpha = 0.08f))
+
+        // 舌体示意（从口腔伸出）
+        val tonguePath = Path().apply {
+            moveTo(cx - w * 0.05f, cy + h * 0.10f)
+            lineTo(cx - w * 0.04f, cy + h * 0.28f)
+            quadraticBezierTo(cx, cy + h * 0.32f, cx + w * 0.04f, cy + h * 0.28f)
+            lineTo(cx + w * 0.05f, cy + h * 0.10f)
+            close()
+        }
+        drawPath(tonguePath, Color.White.copy(alpha = 0.07f))
     }
 }
 
+// ─── 扫描动画 ──────────────────────────────────────────────────
 @Composable
 private fun TongueScanAnimation() {
     val scanProgress = remember { Animatable(0f) }
@@ -271,23 +382,27 @@ private fun TongueScanAnimation() {
     val scanY = scanProgress.value
 
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-        val barHeight = canvasHeight * 0.04f
-        val barY = (canvasHeight * 0.15f) + (canvasHeight * 0.7f) * scanY
+        val w = size.width
+        val h = size.height
+        val barH = h * 0.03f
+        val barY = (h * 0.15f) + (h * 0.7f) * scanY
 
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(OutlineBlue.copy(alpha = 0f), OutlineBlue.copy(alpha = 0.6f), OutlineBlue.copy(alpha = 0f)),
-                startY = barY - barHeight,
-                endY = barY + barHeight
+                colors = listOf(
+                    Color(0xFF4FC3F7).copy(alpha = 0f),
+                    Color(0xFF4FC3F7).copy(alpha = 0.5f),
+                    Color(0xFF4FC3F7).copy(alpha = 0f)
+                ),
+                startY = barY - barH, endY = barY + barH
             ),
-            topLeft = Offset(0f, barY - barHeight),
-            size = Size(canvasWidth, barHeight * 2f)
+            topLeft = Offset(0f, barY - barH),
+            size = Size(w, barH * 2f)
         )
     }
 }
 
+// ─── 诊断结果卡片 ──────────────────────────────────────────────
 @Composable
 private fun TongueDiagnosisResultCard(result: TongueDiagnosisResult) {
     Card(

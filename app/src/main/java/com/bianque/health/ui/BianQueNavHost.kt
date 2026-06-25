@@ -15,30 +15,33 @@ fun BianQueNavHost() {
     val consentGranted by PrivacyManager.observeConsent().collectAsState(initial = false)
 
     NavHost(navController = navController, startDestination = "main") {
+        // ── 首页 ──
         composable("main") {
             MainScreen(
-                onNavigateToFace = {
-                    if (consentGranted) {
-                        navController.navigate("face")
-                    } else {
-                        navController.navigate("consent/face")
-                    }
-                },
-                onNavigateToTongue = {
-                    if (consentGranted) {
-                        navController.navigate("tongue")
-                    } else {
-                        navController.navigate("consent/tongue")
-                    }
-                },
-                onNavigateToBP = { navController.navigate("bp") },
-                onNavigateToPulse = { navController.navigate("pulse") },
+                onNavigateToAIDiagnosis = { navController.navigate("ai_diagnosis") },
                 onNavigateToReport = { navController.navigate("report") },
                 onNavigateToSettings = { navController.navigate("privacy_settings") }
             )
         }
 
-        // 隐私同意页面（带目标路由参数）
+        // ── AI诊断中心 ──
+        composable("ai_diagnosis") {
+            AIDiagnosisScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToFace = {
+                    if (consentGranted) navController.navigate("face")
+                    else navController.navigate("consent/face")
+                },
+                onNavigateToTongue = {
+                    if (consentGranted) navController.navigate("tongue")
+                    else navController.navigate("consent/tongue")
+                },
+                onNavigateToBP = { navController.navigate("bp") },
+                onNavigateToPulse = { navController.navigate("pulse") }
+            )
+        }
+
+        // ── 隐私同意页面（带目标路由参数） ──
         composable("consent/{target}") { backStackEntry ->
             val target = backStackEntry.arguments?.getString("target") ?: "face"
             PrivacyConsentScreen(
@@ -50,13 +53,14 @@ fun BianQueNavHost() {
             )
         }
 
-        // 隐私设置页面
+        // ── 隐私设置页面 ──
         composable("privacy_settings") {
             PrivacySettingsScreen(
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // ── 各诊断功能页面 ──
         composable("face") {
             FaceScanScreen(onBack = { navController.popBackStack() })
         }

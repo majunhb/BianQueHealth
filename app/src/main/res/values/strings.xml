@@ -14,16 +14,39 @@
     <string name="history_title">历史记录</string>
 
     <!-- 主页面 -->
+    <string name="module_ai_diagnosis">AI诊断</string>
+    <string name="module_ai_diagnosis_desc">望闻问切·四诊合参 · 舌象·面色·脉象·血压</string>
     <string name="module_face">面诊</string>
     <string name="module_face_desc">通过面部特征分析气血状态</string>
     <string name="module_tongue">舌诊</string>
     <string name="module_tongue_desc">舌象分析辅助中医辨证</string>
     <string name="module_bp">血压</string>
-    <string name="module_bp_desc">实时血压监测与趋势分析</string>
+    <string name="module_bp_desc">光感无创血压监测与趋势分析</string>
     <string name="module_pulse">脉诊</string>
-    <string name="module_pulse_desc">非接触式脉搏与血压监测</string>
+    <string name="module_pulse_desc">非接触式脉搏信号与心率变异性分析</string>
     <string name="module_report">健康报告</string>
     <string name="module_report_desc">综合体质评估与健康建议</string>
+
+    <!-- 辅助功能模块 -->
+    <string name="module_diet">药膳食疗</string>
+    <string name="module_diet_desc">体质匹配调理食谱</string>
+    <string name="module_meridian">经络穴位</string>
+    <string name="module_meridian_desc">3D经络穴位图解</string>
+    <string name="module_health_quiz">健康自测</string>
+    <string name="module_health_quiz_desc">中医体质问卷筛查</string>
+    <string name="module_disease">疾病图解</string>
+    <string name="module_disease_desc">常见病症中医解读</string>
+    <string name="module_herb">中药图鉴</string>
+    <string name="module_herb_desc">百草图谱与性味归经</string>
+    <string name="module_prescription">名方今用</string>
+    <string name="module_prescription_desc">经典方剂现代应用</string>
+    <string name="module_health_tips">养生科普</string>
+    <string name="module_health_tips_desc">节气养生与日常调理</string>
+
+    <!-- AI诊断中心 -->
+    <string name="ai_diagnosis_title">AI诊断</string>
+    <string name="ai_diagnosis_subtitle">望闻问切 · 四诊合参</string>
+    <string name="ai_diagnosis_hint">请选择诊断方式，AI将综合分析您的健康状况</string>
 
     <!-- 面诊 -->
     <string name="face_scan_title">面部扫描</string>
