@@ -1,6 +1,8 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
 }
 
 android {
@@ -22,8 +24,16 @@ android {
 
 dependencies {
     implementation(project(":base"))
-    // 本地 JSON 解析（冷启动阶段无需 Room/SQLite，直接加载 JSON 文件）
+    // 依赖 health_engine 获取 LlmClient + ApiKeyProvider（统一通义千问入口）
+    implementation(project(":module_health_engine"))
+
+    // 本地 JSON 解析（冷启动阶段加载种子数据）
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     // 协程
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation(libs.coroutines.android)
+    // Timber
+    implementation(libs.timber)
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 }
