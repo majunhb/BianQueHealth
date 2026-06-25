@@ -7,6 +7,7 @@ import com.bianque.health.content.domain.model.*
 import com.bianque.health.content.domain.repository.ContentRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton

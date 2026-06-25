@@ -5,14 +5,29 @@
     "source": "《伤寒论》",
     "originalText": "太阳中风，阳浮而阴弱，阳浮者热自发，阴弱者汗自出，啬啬恶寒，淅淅恶风，翕翕发热，鼻鸣干呕者，桂枝汤主之。",
     "composition": [
-      { "name": "桂枝", "dosage": "9g" },
-      { "name": "芍药", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "生姜", "dosage": "9g" },
-      { "name": "大枣", "dosage": "3枚" }
+      {
+        "name": "桂枝",
+        "dosage": "9g"
+      },
+      {
+        "name": "芍药",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "9g"
+      },
+      {
+        "name": "大枣",
+        "dosage": "3枚"
+      }
     ],
     "indications": "外感风寒表虚证。症见头痛发热，汗出恶风，鼻鸣干呕，苔白不渴，脉浮缓或浮弱。",
-    "modernUse": ["普通感冒、流行性感冒属风寒表虚者", "过敏性鼻炎", "荨麻疹等皮肤过敏性疾病"]
+    "modernUse": "普通感冒、流行性感冒属风寒表虚者；过敏性鼻炎；荨麻疹等皮肤过敏性疾病"
   },
   {
     "id": 2,
@@ -20,13 +35,25 @@
     "source": "《伤寒论》",
     "originalText": "太阳病，头痛发热，身疼腰痛，骨节疼痛，恶风无汗而喘者，麻黄汤主之。",
     "composition": [
-      { "name": "麻黄", "dosage": "9g" },
-      { "name": "桂枝", "dosage": "6g" },
-      { "name": "杏仁", "dosage": "9g" },
-      { "name": "甘草", "dosage": "3g" }
+      {
+        "name": "麻黄",
+        "dosage": "9g"
+      },
+      {
+        "name": "桂枝",
+        "dosage": "6g"
+      },
+      {
+        "name": "杏仁",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "3g"
+      }
     ],
     "indications": "外感风寒表实证。症见恶寒发热，头身疼痛，无汗而喘，舌苔薄白，脉浮紧。",
-    "modernUse": ["感冒、流行性感冒属风寒表实者", "急性支气管炎", "支气管哮喘寒哮证"]
+    "modernUse": "感冒、流行性感冒属风寒表实者；急性支气管炎；支气管哮喘寒哮证"
   },
   {
     "id": 3,
@@ -34,17 +61,41 @@
     "source": "《伤寒论》",
     "originalText": "伤寒表不解，心下有水气，干呕发热而咳，或渴，或利，或噎，或小便不利、少腹满，或喘者，小青龙汤主之。",
     "composition": [
-      { "name": "麻黄", "dosage": "9g" },
-      { "name": "芍药", "dosage": "9g" },
-      { "name": "细辛", "dosage": "3g" },
-      { "name": "干姜", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "桂枝", "dosage": "9g" },
-      { "name": "五味子", "dosage": "6g" },
-      { "name": "半夏", "dosage": "9g" }
+      {
+        "name": "麻黄",
+        "dosage": "9g"
+      },
+      {
+        "name": "芍药",
+        "dosage": "9g"
+      },
+      {
+        "name": "细辛",
+        "dosage": "3g"
+      },
+      {
+        "name": "干姜",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "桂枝",
+        "dosage": "9g"
+      },
+      {
+        "name": "五味子",
+        "dosage": "6g"
+      },
+      {
+        "name": "半夏",
+        "dosage": "9g"
+      }
     ],
     "indications": "外寒内饮证。症见恶寒发热，无汗，胸痞喘咳，痰多而稀，或痰饮喘咳不得平卧，或身体疼重，头面四肢浮肿，舌苔白滑，脉浮。",
-    "modernUse": ["慢性支气管炎急性发作", "支气管哮喘寒饮证", "过敏性鼻炎属寒饮者"]
+    "modernUse": "慢性支气管炎急性发作；支气管哮喘寒饮证；过敏性鼻炎属寒饮者"
   },
   {
     "id": 4,
@@ -52,18 +103,45 @@
     "source": "《温病条辨》",
     "originalText": "太阴风温、温热、温疫、冬温，初起恶风寒者，桂枝汤主之；但热不恶寒而渴者，辛凉平剂银翘散主之。",
     "composition": [
-      { "name": "金银花", "dosage": "15g" },
-      { "name": "连翘", "dosage": "15g" },
-      { "name": "桔梗", "dosage": "6g" },
-      { "name": "薄荷", "dosage": "6g" },
-      { "name": "竹叶", "dosage": "4g" },
-      { "name": "荆芥", "dosage": "4g" },
-      { "name": "淡豆豉", "dosage": "5g" },
-      { "name": "牛蒡子", "dosage": "6g" },
-      { "name": "甘草", "dosage": "5g" }
+      {
+        "name": "金银花",
+        "dosage": "15g"
+      },
+      {
+        "name": "连翘",
+        "dosage": "15g"
+      },
+      {
+        "name": "桔梗",
+        "dosage": "6g"
+      },
+      {
+        "name": "薄荷",
+        "dosage": "6g"
+      },
+      {
+        "name": "竹叶",
+        "dosage": "4g"
+      },
+      {
+        "name": "荆芥",
+        "dosage": "4g"
+      },
+      {
+        "name": "淡豆豉",
+        "dosage": "5g"
+      },
+      {
+        "name": "牛蒡子",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "5g"
+      }
     ],
     "indications": "风热感冒。症见发热无汗或有汗不畅，微恶风寒，头痛口渴，咳嗽咽痛，舌尖红，苔薄白或薄黄，脉浮数。",
-    "modernUse": ["流行性感冒属风热者", "急性扁桃体炎、急性咽炎", "麻疹初起"]
+    "modernUse": "流行性感冒属风热者；急性扁桃体炎、急性咽炎；麻疹初起"
   },
   {
     "id": 5,
@@ -71,13 +149,25 @@
     "source": "《太平惠民和剂局方》",
     "originalText": "荣卫气虚，脏腑怯弱，心腹胀满，全不思食，肠鸣泄泻，呕哕吐逆，大宜服之。",
     "composition": [
-      { "name": "人参", "dosage": "9g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" }
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      }
     ],
     "indications": "脾胃气虚证。症见面色萎白，语声低微，气短乏力，食少便溏，舌淡苔白，脉虚弱。",
-    "modernUse": ["慢性胃炎、消化性溃疡属脾胃气虚者", "慢性肠炎", "肿瘤放化疗后脾胃虚弱调理"]
+    "modernUse": "慢性胃炎、消化性溃疡属脾胃气虚者；慢性肠炎；肿瘤放化疗后脾胃虚弱调理"
   },
   {
     "id": 6,
@@ -85,13 +175,25 @@
     "source": "《太平惠民和剂局方》",
     "originalText": "调益荣卫，滋养气血。治冲任虚损，月水不调，脐腹疼痛，崩中漏下，血瘕块硬，发歇疼痛，妊娠宿冷，将理失宜，胎动不安，血下不止，及产后乘虚，风寒内搏，恶露不下，结生瘕聚，少腹坚痛，时作寒热。",
     "composition": [
-      { "name": "当归", "dosage": "12g" },
-      { "name": "川芎", "dosage": "9g" },
-      { "name": "白芍", "dosage": "12g" },
-      { "name": "熟地黄", "dosage": "15g" }
+      {
+        "name": "当归",
+        "dosage": "12g"
+      },
+      {
+        "name": "川芎",
+        "dosage": "9g"
+      },
+      {
+        "name": "白芍",
+        "dosage": "12g"
+      },
+      {
+        "name": "熟地黄",
+        "dosage": "15g"
+      }
     ],
     "indications": "血虚证。症见面色萎黄，头晕目眩，心悸失眠，月经不调，或经闭不行，脐腹疼痛，舌淡，脉细弦或细涩。",
-    "modernUse": ["月经不调、痛经属血虚者", "贫血", "产后血虚调理"]
+    "modernUse": "月经不调、痛经属血虚者；贫血；产后血虚调理"
   },
   {
     "id": 7,
@@ -99,17 +201,41 @@
     "source": "《正体类要》",
     "originalText": "治气血俱虚，恶寒发热，烦躁作渴，大便不实，饮食不进，小腹胀痛，眩晕昏愦等证。",
     "composition": [
-      { "name": "人参", "dosage": "9g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "当归", "dosage": "12g" },
-      { "name": "川芎", "dosage": "9g" },
-      { "name": "白芍", "dosage": "12g" },
-      { "name": "熟地黄", "dosage": "15g" }
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "当归",
+        "dosage": "12g"
+      },
+      {
+        "name": "川芎",
+        "dosage": "9g"
+      },
+      {
+        "name": "白芍",
+        "dosage": "12g"
+      },
+      {
+        "name": "熟地黄",
+        "dosage": "15g"
+      }
     ],
     "indications": "气血两虚证。症见面色苍白或萎黄，头晕目眩，四肢倦怠，气短懒言，心悸怔忡，饮食减少，舌淡苔薄白，脉细弱或虚大无力。",
-    "modernUse": ["病后虚弱、各种慢性消耗性疾病恢复期", "贫血", "术后及产后气血亏虚调理"]
+    "modernUse": "病后虚弱、各种慢性消耗性疾病恢复期；贫血；术后及产后气血亏虚调理"
   },
   {
     "id": 8,
@@ -117,15 +243,33 @@
     "source": "《小儿药证直诀》",
     "originalText": "治肾怯失音，囟开不合，神不足，目中白睛多，面色白等。",
     "composition": [
-      { "name": "熟地黄", "dosage": "24g" },
-      { "name": "山茱萸", "dosage": "12g" },
-      { "name": "山药", "dosage": "12g" },
-      { "name": "泽泻", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "牡丹皮", "dosage": "9g" }
+      {
+        "name": "熟地黄",
+        "dosage": "24g"
+      },
+      {
+        "name": "山茱萸",
+        "dosage": "12g"
+      },
+      {
+        "name": "山药",
+        "dosage": "12g"
+      },
+      {
+        "name": "泽泻",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "牡丹皮",
+        "dosage": "9g"
+      }
     ],
     "indications": "肾阴虚证。症见腰膝酸软，头晕目眩，耳鸣耳聋，盗汗遗精，消渴，骨蒸潮热，手足心热，口燥咽干，牙齿动摇，足跟作痛，小便淋沥，舌红少苔，脉细数。",
-    "modernUse": ["慢性肾炎、高血压、糖尿病属肾阴虚者", "更年期综合征", "老年性骨质疏松"]
+    "modernUse": "慢性肾炎、高血压、糖尿病属肾阴虚者；更年期综合征；老年性骨质疏松"
   },
   {
     "id": 9,
@@ -133,17 +277,41 @@
     "source": "《金匮要略》",
     "originalText": "虚劳腰痛，少腹拘急，小便不利者，八味肾气丸主之。",
     "composition": [
-      { "name": "熟地黄", "dosage": "24g" },
-      { "name": "山茱萸", "dosage": "12g" },
-      { "name": "山药", "dosage": "12g" },
-      { "name": "泽泻", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "牡丹皮", "dosage": "9g" },
-      { "name": "桂枝", "dosage": "3g" },
-      { "name": "附子", "dosage": "3g" }
+      {
+        "name": "熟地黄",
+        "dosage": "24g"
+      },
+      {
+        "name": "山茱萸",
+        "dosage": "12g"
+      },
+      {
+        "name": "山药",
+        "dosage": "12g"
+      },
+      {
+        "name": "泽泻",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "牡丹皮",
+        "dosage": "9g"
+      },
+      {
+        "name": "桂枝",
+        "dosage": "3g"
+      },
+      {
+        "name": "附子",
+        "dosage": "3g"
+      }
     ],
     "indications": "肾阳虚证。症见腰痛脚软，下半身常有冷感，少腹拘急，小便不利或反多，入夜尤甚，阳痿早泄，舌淡而胖，苔薄白不燥，脉虚弱尺部沉微。",
-    "modernUse": ["慢性肾炎、慢性肾衰竭属肾阳虚者", "前列腺增生", "老年性夜尿频多"]
+    "modernUse": "慢性肾炎、慢性肾衰竭属肾阳虚者；前列腺增生；老年性夜尿频多"
   },
   {
     "id": 10,
@@ -151,17 +319,41 @@
     "source": "《脾胃论》",
     "originalText": "脾胃气虚，少气懒言，四肢无力，困倦少食，饮食乏味，不耐劳累，动则气短；或气虚发热，身热而烦，渴喜热饮，其脉洪大，按之无力，皮肤不任风寒而生寒热头痛；或气虚下陷，久泻脱肛。",
     "composition": [
-      { "name": "黄芪", "dosage": "18g" },
-      { "name": "人参", "dosage": "9g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "当归", "dosage": "9g" },
-      { "name": "陈皮", "dosage": "6g" },
-      { "name": "升麻", "dosage": "6g" },
-      { "name": "柴胡", "dosage": "6g" }
+      {
+        "name": "黄芪",
+        "dosage": "18g"
+      },
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "当归",
+        "dosage": "9g"
+      },
+      {
+        "name": "陈皮",
+        "dosage": "6g"
+      },
+      {
+        "name": "升麻",
+        "dosage": "6g"
+      },
+      {
+        "name": "柴胡",
+        "dosage": "6g"
+      }
     ],
     "indications": "脾胃气虚下陷证。症见饮食减少，体倦肢软，少气懒言，面色萎黄，大便稀溏，或脱肛，子宫脱垂，久泻久痢，崩漏等，舌淡脉虚。",
-    "modernUse": ["胃下垂、子宫脱垂、脱肛等内脏下垂", "慢性疲劳综合征", "功能性低热"]
+    "modernUse": "胃下垂、子宫脱垂、脱肛等内脏下垂；慢性疲劳综合征；功能性低热"
   },
   {
     "id": 11,
@@ -169,19 +361,49 @@
     "source": "《济生方》",
     "originalText": "治思虑过度，劳伤心脾，健忘怔忡。",
     "composition": [
-      { "name": "人参", "dosage": "9g" },
-      { "name": "黄芪", "dosage": "12g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "当归", "dosage": "9g" },
-      { "name": "茯神", "dosage": "9g" },
-      { "name": "远志", "dosage": "6g" },
-      { "name": "酸枣仁", "dosage": "12g" },
-      { "name": "木香", "dosage": "6g" },
-      { "name": "龙眼肉", "dosage": "12g" },
-      { "name": "甘草", "dosage": "6g" }
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "黄芪",
+        "dosage": "12g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "当归",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯神",
+        "dosage": "9g"
+      },
+      {
+        "name": "远志",
+        "dosage": "6g"
+      },
+      {
+        "name": "酸枣仁",
+        "dosage": "12g"
+      },
+      {
+        "name": "木香",
+        "dosage": "6g"
+      },
+      {
+        "name": "龙眼肉",
+        "dosage": "12g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      }
     ],
     "indications": "心脾两虚证。症见心悸怔忡，健忘失眠，盗汗虚热，食少体倦，面色萎黄，舌淡苔薄白，脉细弱。亦治脾不统血之便血、崩漏、月经超前、量多色淡或淋漓不止。",
-    "modernUse": ["神经衰弱、失眠症", "功能性子宫出血", "再生障碍性贫血等慢性出血性疾病"]
+    "modernUse": "神经衰弱、失眠症；功能性子宫出血；再生障碍性贫血等慢性出血性疾病"
   },
   {
     "id": 12,
@@ -189,17 +411,41 @@
     "source": "《太平惠民和剂局方》",
     "originalText": "治血虚劳倦，五心烦热，肢体疼痛，头目昏重，心忪颊赤，口燥咽干，发热盗汗，减食嗜卧，及血热相搏，月水不调，脐腹胀痛，寒热如疟。又疗室女血弱阴虚，荣卫不和，痰嗽潮热，肌体羸瘦，渐成骨蒸。",
     "composition": [
-      { "name": "柴胡", "dosage": "9g" },
-      { "name": "当归", "dosage": "9g" },
-      { "name": "白芍", "dosage": "9g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "薄荷", "dosage": "3g" },
-      { "name": "生姜", "dosage": "3g" }
+      {
+        "name": "柴胡",
+        "dosage": "9g"
+      },
+      {
+        "name": "当归",
+        "dosage": "9g"
+      },
+      {
+        "name": "白芍",
+        "dosage": "9g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "薄荷",
+        "dosage": "3g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "3g"
+      }
     ],
     "indications": "肝郁脾虚证。症见两胁作痛，头痛目眩，口燥咽干，神疲食少，或往来寒热，或月经不调，乳房胀痛，脉弦而虚。",
-    "modernUse": ["经前期紧张综合征、月经不调", "慢性肝炎、肝硬化早期", "抑郁症、焦虑症属肝郁脾虚者"]
+    "modernUse": "经前期紧张综合征、月经不调；慢性肝炎、肝硬化早期；抑郁症、焦虑症属肝郁脾虚者"
   },
   {
     "id": 13,
@@ -207,16 +453,37 @@
     "source": "《伤寒论》",
     "originalText": "但满而不痛者，此为痞，柴胡不中与之，宜半夏泻心汤。",
     "composition": [
-      { "name": "半夏", "dosage": "12g" },
-      { "name": "黄芩", "dosage": "9g" },
-      { "name": "干姜", "dosage": "9g" },
-      { "name": "人参", "dosage": "9g" },
-      { "name": "黄连", "dosage": "3g" },
-      { "name": "大枣", "dosage": "4枚" },
-      { "name": "甘草", "dosage": "6g" }
+      {
+        "name": "半夏",
+        "dosage": "12g"
+      },
+      {
+        "name": "黄芩",
+        "dosage": "9g"
+      },
+      {
+        "name": "干姜",
+        "dosage": "9g"
+      },
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "黄连",
+        "dosage": "3g"
+      },
+      {
+        "name": "大枣",
+        "dosage": "4枚"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      }
     ],
     "indications": "寒热错杂痞证。症见心下痞满不痛，呕吐，肠鸣下利，舌苔腻而微黄，脉弦数。",
-    "modernUse": ["慢性胃炎、胃及十二指肠溃疡", "功能性消化不良", "慢性肠炎属寒热错杂者"]
+    "modernUse": "慢性胃炎、胃及十二指肠溃疡；功能性消化不良；慢性肠炎属寒热错杂者"
   },
   {
     "id": 14,
@@ -224,16 +491,37 @@
     "source": "《伤寒论》",
     "originalText": "伤寒五六日，中风，往来寒热，胸胁苦满，嘿嘿不欲饮食，心烦喜呕，或胸中烦而不呕，或渴，或腹中痛，或胁下痞硬，或心下悸、小便不利，或不渴、身有微热，或咳者，小柴胡汤主之。",
     "composition": [
-      { "name": "柴胡", "dosage": "24g" },
-      { "name": "黄芩", "dosage": "9g" },
-      { "name": "半夏", "dosage": "9g" },
-      { "name": "人参", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "生姜", "dosage": "9g" },
-      { "name": "大枣", "dosage": "4枚" }
+      {
+        "name": "柴胡",
+        "dosage": "24g"
+      },
+      {
+        "name": "黄芩",
+        "dosage": "9g"
+      },
+      {
+        "name": "半夏",
+        "dosage": "9g"
+      },
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "9g"
+      },
+      {
+        "name": "大枣",
+        "dosage": "4枚"
+      }
     ],
     "indications": "少阳证。症见往来寒热，胸胁苦满，默默不欲饮食，心烦喜呕，口苦，咽干，目眩，舌苔薄白，脉弦。",
-    "modernUse": ["感冒、流感属少阳证者", "慢性胆囊炎、胆石症", "经期感冒"]
+    "modernUse": "感冒、流感属少阳证者；慢性胆囊炎、胆石症；经期感冒"
   },
   {
     "id": 15,
@@ -241,13 +529,25 @@
     "source": "《伤寒论》",
     "originalText": "伤寒脉浮滑，此表有热，里有寒，白虎汤主之。",
     "composition": [
-      { "name": "石膏", "dosage": "30g" },
-      { "name": "知母", "dosage": "12g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "粳米", "dosage": "15g" }
+      {
+        "name": "石膏",
+        "dosage": "30g"
+      },
+      {
+        "name": "知母",
+        "dosage": "12g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "粳米",
+        "dosage": "15g"
+      }
     ],
     "indications": "阳明气分热盛证。症见壮热面赤，烦渴引饮，汗出恶热，脉洪大有力。",
-    "modernUse": ["感染性疾病高热期", "中暑高热", "糖尿病烦渴多饮属胃热者"]
+    "modernUse": "感染性疾病高热期；中暑高热；糖尿病烦渴多饮属胃热者"
   },
   {
     "id": 16,
@@ -255,13 +555,25 @@
     "source": "《外台秘要》",
     "originalText": "治大热烦躁，口燥咽干，错语不眠，或吐血衄血，或热甚发斑，身热下利，湿热黄疸，外科痈疡疔毒。",
     "composition": [
-      { "name": "黄连", "dosage": "9g" },
-      { "name": "黄芩", "dosage": "9g" },
-      { "name": "黄柏", "dosage": "9g" },
-      { "name": "栀子", "dosage": "9g" }
+      {
+        "name": "黄连",
+        "dosage": "9g"
+      },
+      {
+        "name": "黄芩",
+        "dosage": "9g"
+      },
+      {
+        "name": "黄柏",
+        "dosage": "9g"
+      },
+      {
+        "name": "栀子",
+        "dosage": "9g"
+      }
     ],
     "indications": "三焦火毒热盛证。症见大热烦躁，口燥咽干，错语不眠，或吐血衄血，或热甚发斑，身热下利，小便黄赤，舌红苔黄，脉数有力。",
-    "modernUse": ["败血症、脓毒血症", "急性感染性疾病热毒炽盛者", "急性胃肠炎、细菌性痢疾"]
+    "modernUse": "败血症、脓毒血症；急性感染性疾病热毒炽盛者；急性胃肠炎、细菌性痢疾"
   },
   {
     "id": 17,
@@ -269,19 +581,49 @@
     "source": "《医方集解》",
     "originalText": "治肝胆经实火、湿热，胁痛，耳聋，胆溢口苦，筋痿阴汗，阴肿阴痛，白浊溲血。",
     "composition": [
-      { "name": "龙胆草", "dosage": "6g" },
-      { "name": "黄芩", "dosage": "9g" },
-      { "name": "栀子", "dosage": "9g" },
-      { "name": "泽泻", "dosage": "12g" },
-      { "name": "木通", "dosage": "6g" },
-      { "name": "车前子", "dosage": "9g" },
-      { "name": "当归", "dosage": "9g" },
-      { "name": "生地黄", "dosage": "12g" },
-      { "name": "柴胡", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" }
+      {
+        "name": "龙胆草",
+        "dosage": "6g"
+      },
+      {
+        "name": "黄芩",
+        "dosage": "9g"
+      },
+      {
+        "name": "栀子",
+        "dosage": "9g"
+      },
+      {
+        "name": "泽泻",
+        "dosage": "12g"
+      },
+      {
+        "name": "木通",
+        "dosage": "6g"
+      },
+      {
+        "name": "车前子",
+        "dosage": "9g"
+      },
+      {
+        "name": "当归",
+        "dosage": "9g"
+      },
+      {
+        "name": "生地黄",
+        "dosage": "12g"
+      },
+      {
+        "name": "柴胡",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      }
     ],
     "indications": "肝胆实火上炎及肝经湿热下注证。症见头痛目赤，胁痛口苦，耳聋耳肿；或阴肿阴痒，小便淋浊，妇女带下黄臭，舌红苔黄腻，脉弦数有力。",
-    "modernUse": ["急性结膜炎、急性中耳炎", "带状疱疹", "急性泌尿系感染、阴道炎"]
+    "modernUse": "急性结膜炎、急性中耳炎；带状疱疹；急性泌尿系感染、阴道炎"
   },
   {
     "id": 18,
@@ -289,12 +631,21 @@
     "source": "《医方类聚》",
     "originalText": "治腠理不密，易于感冒。",
     "composition": [
-      { "name": "黄芪", "dosage": "12g" },
-      { "name": "白术", "dosage": "12g" },
-      { "name": "防风", "dosage": "6g" }
+      {
+        "name": "黄芪",
+        "dosage": "12g"
+      },
+      {
+        "name": "白术",
+        "dosage": "12g"
+      },
+      {
+        "name": "防风",
+        "dosage": "6g"
+      }
     ],
     "indications": "表虚自汗证。症见汗出恶风，面色白，舌淡苔薄白，脉浮虚。亦治虚人腠理不固，易于感冒。",
-    "modernUse": ["反复呼吸道感染、易感冒者预防", "过敏性鼻炎", "自汗、盗汗属气虚表卫不固者"]
+    "modernUse": "反复呼吸道感染、易感冒者预防；过敏性鼻炎；自汗、盗汗属气虚表卫不固者"
   },
   {
     "id": 19,
@@ -302,12 +653,21 @@
     "source": "《医学启源》",
     "originalText": "补肺中元气不足。",
     "composition": [
-      { "name": "人参", "dosage": "9g" },
-      { "name": "麦冬", "dosage": "9g" },
-      { "name": "五味子", "dosage": "6g" }
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "麦冬",
+        "dosage": "9g"
+      },
+      {
+        "name": "五味子",
+        "dosage": "6g"
+      }
     ],
     "indications": "气阴两虚证。症见汗多神疲，体倦乏力，气短懒言，咽干口渴，舌干红少苔，脉虚数。",
-    "modernUse": ["心力衰竭、冠心病心绞痛属气阴两虚者", "中暑后气阴耗伤", "肿瘤放化疗后气阴亏虚调理"]
+    "modernUse": "心力衰竭、冠心病心绞痛属气阴两虚者；中暑后气阴耗伤；肿瘤放化疗后气阴亏虚调理"
   },
   {
     "id": 20,
@@ -315,20 +675,53 @@
     "source": "《医林改错》",
     "originalText": "治胸中血府血瘀之症。",
     "composition": [
-      { "name": "桃仁", "dosage": "12g" },
-      { "name": "红花", "dosage": "9g" },
-      { "name": "当归", "dosage": "9g" },
-      { "name": "生地黄", "dosage": "9g" },
-      { "name": "牛膝", "dosage": "9g" },
-      { "name": "川芎", "dosage": "6g" },
-      { "name": "桔梗", "dosage": "6g" },
-      { "name": "赤芍", "dosage": "6g" },
-      { "name": "枳壳", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "柴胡", "dosage": "3g" }
+      {
+        "name": "桃仁",
+        "dosage": "12g"
+      },
+      {
+        "name": "红花",
+        "dosage": "9g"
+      },
+      {
+        "name": "当归",
+        "dosage": "9g"
+      },
+      {
+        "name": "生地黄",
+        "dosage": "9g"
+      },
+      {
+        "name": "牛膝",
+        "dosage": "9g"
+      },
+      {
+        "name": "川芎",
+        "dosage": "6g"
+      },
+      {
+        "name": "桔梗",
+        "dosage": "6g"
+      },
+      {
+        "name": "赤芍",
+        "dosage": "6g"
+      },
+      {
+        "name": "枳壳",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "柴胡",
+        "dosage": "3g"
+      }
     ],
     "indications": "胸中血瘀证。症见胸痛头痛，痛如针刺而有定处，或呃逆日久不止，或内热烦闷，或心悸失眠，急躁易怒，入暮潮热，唇暗或两目暗黑，舌质暗红或有瘀斑，脉涩或弦紧。",
-    "modernUse": ["冠心病心绞痛", "脑震荡后遗症头痛", "肋间神经痛"]
+    "modernUse": "冠心病心绞痛；脑震荡后遗症头痛；肋间神经痛"
   },
   {
     "id": 21,
@@ -336,21 +729,57 @@
     "source": "《金匮要略》",
     "originalText": "问曰：妇人年五十所，病下利数十日不止，暮即发热，少腹里急，腹满，手掌烦热，唇口干燥，何也？师曰：此病属带下，何以故？曾经半产，瘀血在少腹不去。何以知之？其证唇口干燥，故知之。当以温经汤主之。",
     "composition": [
-      { "name": "吴茱萸", "dosage": "6g" },
-      { "name": "当归", "dosage": "9g" },
-      { "name": "芍药", "dosage": "9g" },
-      { "name": "川芎", "dosage": "6g" },
-      { "name": "人参", "dosage": "6g" },
-      { "name": "桂枝", "dosage": "6g" },
-      { "name": "阿胶", "dosage": "9g" },
-      { "name": "牡丹皮", "dosage": "6g" },
-      { "name": "生姜", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "半夏", "dosage": "6g" },
-      { "name": "麦冬", "dosage": "9g" }
+      {
+        "name": "吴茱萸",
+        "dosage": "6g"
+      },
+      {
+        "name": "当归",
+        "dosage": "9g"
+      },
+      {
+        "name": "芍药",
+        "dosage": "9g"
+      },
+      {
+        "name": "川芎",
+        "dosage": "6g"
+      },
+      {
+        "name": "人参",
+        "dosage": "6g"
+      },
+      {
+        "name": "桂枝",
+        "dosage": "6g"
+      },
+      {
+        "name": "阿胶",
+        "dosage": "9g"
+      },
+      {
+        "name": "牡丹皮",
+        "dosage": "6g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "半夏",
+        "dosage": "6g"
+      },
+      {
+        "name": "麦冬",
+        "dosage": "9g"
+      }
     ],
     "indications": "冲任虚寒，瘀血阻滞证。症见漏下不止，月经不调，或前或后，或逾期不止，或一月再行，或经停不至，傍晚发热，手心烦热，唇口干燥，少腹里急，腹满，舌质暗红，脉细而涩。",
-    "modernUse": ["功能性子宫出血", "更年期综合征", "月经不调、痛经属虚寒血瘀者"]
+    "modernUse": "功能性子宫出血；更年期综合征；月经不调、痛经属虚寒血瘀者"
   },
   {
     "id": 22,
@@ -358,14 +787,29 @@
     "source": "《金匮要略》",
     "originalText": "虚劳虚烦不得眠，酸枣仁汤主之。",
     "composition": [
-      { "name": "酸枣仁", "dosage": "15g" },
-      { "name": "知母", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "川芎", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" }
+      {
+        "name": "酸枣仁",
+        "dosage": "15g"
+      },
+      {
+        "name": "知母",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "川芎",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      }
     ],
     "indications": "虚烦不眠证。症见虚烦失眠，心悸盗汗，头目眩晕，咽干口燥，舌红少苔，脉细弦。",
-    "modernUse": ["神经衰弱所致失眠", "焦虑症伴有睡眠障碍", "更年期睡眠障碍"]
+    "modernUse": "神经衰弱所致失眠；焦虑症伴有睡眠障碍；更年期睡眠障碍"
   },
   {
     "id": 23,
@@ -373,22 +817,61 @@
     "source": "《校注妇人良方》",
     "originalText": "治妇人劳热，心神不安，咽干口燥，或生疮。",
     "composition": [
-      { "name": "人参", "dosage": "15g" },
-      { "name": "玄参", "dosage": "15g" },
-      { "name": "丹参", "dosage": "15g" },
-      { "name": "茯苓", "dosage": "15g" },
-      { "name": "五味子", "dosage": "15g" },
-      { "name": "远志", "dosage": "15g" },
-      { "name": "桔梗", "dosage": "15g" },
-      { "name": "当归", "dosage": "30g" },
-      { "name": "天冬", "dosage": "30g" },
-      { "name": "麦冬", "dosage": "30g" },
-      { "name": "柏子仁", "dosage": "30g" },
-      { "name": "酸枣仁", "dosage": "30g" },
-      { "name": "生地黄", "dosage": "120g" }
+      {
+        "name": "人参",
+        "dosage": "15g"
+      },
+      {
+        "name": "玄参",
+        "dosage": "15g"
+      },
+      {
+        "name": "丹参",
+        "dosage": "15g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "15g"
+      },
+      {
+        "name": "五味子",
+        "dosage": "15g"
+      },
+      {
+        "name": "远志",
+        "dosage": "15g"
+      },
+      {
+        "name": "桔梗",
+        "dosage": "15g"
+      },
+      {
+        "name": "当归",
+        "dosage": "30g"
+      },
+      {
+        "name": "天冬",
+        "dosage": "30g"
+      },
+      {
+        "name": "麦冬",
+        "dosage": "30g"
+      },
+      {
+        "name": "柏子仁",
+        "dosage": "30g"
+      },
+      {
+        "name": "酸枣仁",
+        "dosage": "30g"
+      },
+      {
+        "name": "生地黄",
+        "dosage": "120g"
+      }
     ],
     "indications": "阴虚血少，神志不安证。症见心悸失眠，虚烦神疲，梦遗健忘，手足心热，口舌生疮，大便干结，舌红少苔，脉细数。",
-    "modernUse": ["神经衰弱、失眠症", "心律失常、心肌炎恢复期", "更年期综合征阴虚火旺者"]
+    "modernUse": "神经衰弱、失眠症；心律失常、心肌炎恢复期；更年期综合征阴虚火旺者"
   },
   {
     "id": 24,
@@ -396,20 +879,53 @@
     "source": "《太平惠民和剂局方》",
     "originalText": "治伤寒头疼，憎寒壮热，上喘咳嗽，五劳七伤，八般风痰，五般膈气，心腹冷痛，反胃呕恶，气泻霍乱，脏腑虚鸣，山岚瘴疟，遍身虚肿。",
     "composition": [
-      { "name": "藿香", "dosage": "9g" },
-      { "name": "紫苏", "dosage": "6g" },
-      { "name": "白芷", "dosage": "6g" },
-      { "name": "半夏", "dosage": "9g" },
-      { "name": "陈皮", "dosage": "9g" },
-      { "name": "厚朴", "dosage": "6g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "桔梗", "dosage": "6g" },
-      { "name": "大腹皮", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" }
+      {
+        "name": "藿香",
+        "dosage": "9g"
+      },
+      {
+        "name": "紫苏",
+        "dosage": "6g"
+      },
+      {
+        "name": "白芷",
+        "dosage": "6g"
+      },
+      {
+        "name": "半夏",
+        "dosage": "9g"
+      },
+      {
+        "name": "陈皮",
+        "dosage": "9g"
+      },
+      {
+        "name": "厚朴",
+        "dosage": "6g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "桔梗",
+        "dosage": "6g"
+      },
+      {
+        "name": "大腹皮",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      }
     ],
     "indications": "外感风寒，内伤湿滞证。症见恶寒发热，头痛，胸膈满闷，脘腹疼痛，恶心呕吐，肠鸣泄泻，舌苔白腻，脉浮或濡缓。",
-    "modernUse": ["急性胃肠炎", "夏季感冒、中暑", "水土不服所致的胃肠不适"]
+    "modernUse": "急性胃肠炎；夏季感冒、中暑；水土不服所致的胃肠不适"
   },
   {
     "id": 25,
@@ -417,16 +933,37 @@
     "source": "《丹溪心法》",
     "originalText": "治一切食积。",
     "composition": [
-      { "name": "山楂", "dosage": "18g" },
-      { "name": "神曲", "dosage": "9g" },
-      { "name": "半夏", "dosage": "9g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "陈皮", "dosage": "6g" },
-      { "name": "连翘", "dosage": "6g" },
-      { "name": "莱菔子", "dosage": "6g" }
+      {
+        "name": "山楂",
+        "dosage": "18g"
+      },
+      {
+        "name": "神曲",
+        "dosage": "9g"
+      },
+      {
+        "name": "半夏",
+        "dosage": "9g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "陈皮",
+        "dosage": "6g"
+      },
+      {
+        "name": "连翘",
+        "dosage": "6g"
+      },
+      {
+        "name": "莱菔子",
+        "dosage": "6g"
+      }
     ],
     "indications": "食积停滞证。症见脘腹痞满胀痛，嗳腐吞酸，恶食呕逆，或大便泄泻，舌苔厚腻，脉滑。",
-    "modernUse": ["消化不良、食积停滞", "小儿积食、厌食", "急性胃肠炎食积型"]
+    "modernUse": "消化不良、食积停滞；小儿积食、厌食；急性胃肠炎食积型"
   },
   {
     "id": 26,
@@ -434,15 +971,33 @@
     "source": "《太平惠民和剂局方》",
     "originalText": "治痰饮为患，或呕吐恶心，或头眩心悸，或中脘不快，或发为寒热，或因食生冷，脾胃不和。",
     "composition": [
-      { "name": "半夏", "dosage": "15g" },
-      { "name": "陈皮", "dosage": "15g" },
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "生姜", "dosage": "3g" },
-      { "name": "乌梅", "dosage": "1枚" }
+      {
+        "name": "半夏",
+        "dosage": "15g"
+      },
+      {
+        "name": "陈皮",
+        "dosage": "15g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "3g"
+      },
+      {
+        "name": "乌梅",
+        "dosage": "1枚"
+      }
     ],
     "indications": "湿痰证。症见咳嗽痰多，色白易咯，胸膈痞闷，恶心呕吐，肢体困倦，或头眩心悸，舌苔白滑或腻，脉滑。",
-    "modernUse": ["慢性支气管炎痰湿证", "慢性胃炎痰湿中阻证", "梅尼埃病（眩晕症）痰湿型"]
+    "modernUse": "慢性支气管炎痰湿证；慢性胃炎痰湿中阻证；梅尼埃病（眩晕症）痰湿型"
   },
   {
     "id": 27,
@@ -450,24 +1005,69 @@
     "source": "《备急千金要方》",
     "originalText": "治腰背痛，肾气虚弱，卧冷湿地当风所得。",
     "composition": [
-      { "name": "独活", "dosage": "9g" },
-      { "name": "桑寄生", "dosage": "6g" },
-      { "name": "杜仲", "dosage": "6g" },
-      { "name": "牛膝", "dosage": "6g" },
-      { "name": "细辛", "dosage": "3g" },
-      { "name": "秦艽", "dosage": "6g" },
-      { "name": "茯苓", "dosage": "6g" },
-      { "name": "肉桂心", "dosage": "3g" },
-      { "name": "防风", "dosage": "6g" },
-      { "name": "川芎", "dosage": "6g" },
-      { "name": "人参", "dosage": "6g" },
-      { "name": "甘草", "dosage": "6g" },
-      { "name": "当归", "dosage": "6g" },
-      { "name": "芍药", "dosage": "6g" },
-      { "name": "干地黄", "dosage": "6g" }
+      {
+        "name": "独活",
+        "dosage": "9g"
+      },
+      {
+        "name": "桑寄生",
+        "dosage": "6g"
+      },
+      {
+        "name": "杜仲",
+        "dosage": "6g"
+      },
+      {
+        "name": "牛膝",
+        "dosage": "6g"
+      },
+      {
+        "name": "细辛",
+        "dosage": "3g"
+      },
+      {
+        "name": "秦艽",
+        "dosage": "6g"
+      },
+      {
+        "name": "茯苓",
+        "dosage": "6g"
+      },
+      {
+        "name": "肉桂心",
+        "dosage": "3g"
+      },
+      {
+        "name": "防风",
+        "dosage": "6g"
+      },
+      {
+        "name": "川芎",
+        "dosage": "6g"
+      },
+      {
+        "name": "人参",
+        "dosage": "6g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "6g"
+      },
+      {
+        "name": "当归",
+        "dosage": "6g"
+      },
+      {
+        "name": "芍药",
+        "dosage": "6g"
+      },
+      {
+        "name": "干地黄",
+        "dosage": "6g"
+      }
     ],
     "indications": "肝肾两亏，风寒湿痹证。症见腰膝冷痛，肢节屈伸不利，或麻木不仁，畏寒喜温，舌淡苔白，脉细弱。",
-    "modernUse": ["慢性风湿性关节炎、类风湿性关节炎", "腰椎间盘突出症、坐骨神经痛", "老年性骨关节炎"]
+    "modernUse": "慢性风湿性关节炎、类风湿性关节炎；腰椎间盘突出症、坐骨神经痛；老年性骨关节炎"
   },
   {
     "id": 28,
@@ -475,14 +1075,29 @@
     "source": "《伤寒论》",
     "originalText": "太阳病发汗，汗出不解，其人仍发热，心下悸，头眩，身瞤动，振振欲擗地者，真武汤主之。",
     "composition": [
-      { "name": "茯苓", "dosage": "9g" },
-      { "name": "芍药", "dosage": "9g" },
-      { "name": "生姜", "dosage": "9g" },
-      { "name": "白术", "dosage": "6g" },
-      { "name": "附子", "dosage": "9g" }
+      {
+        "name": "茯苓",
+        "dosage": "9g"
+      },
+      {
+        "name": "芍药",
+        "dosage": "9g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "9g"
+      },
+      {
+        "name": "白术",
+        "dosage": "6g"
+      },
+      {
+        "name": "附子",
+        "dosage": "9g"
+      }
     ],
     "indications": "阳虚水泛证。症见畏寒肢冷，小便不利，四肢沉重疼痛，浮肿，腰以下为甚，或腹痛泄泻，或咳喘呕逆，舌淡胖有齿痕，苔白滑，脉沉细。",
-    "modernUse": ["慢性肾炎水肿", "心力衰竭所致水肿", "甲状腺功能减退症"]
+    "modernUse": "慢性肾炎水肿；心力衰竭所致水肿；甲状腺功能减退症"
   },
   {
     "id": 29,
@@ -490,13 +1105,25 @@
     "source": "《伤寒论》",
     "originalText": "霍乱，头痛发热，身疼痛，热多欲饮水者，五苓散主之；寒多不用水者，理中丸主之。",
     "composition": [
-      { "name": "人参", "dosage": "9g" },
-      { "name": "干姜", "dosage": "9g" },
-      { "name": "白术", "dosage": "9g" },
-      { "name": "甘草", "dosage": "9g" }
+      {
+        "name": "人参",
+        "dosage": "9g"
+      },
+      {
+        "name": "干姜",
+        "dosage": "9g"
+      },
+      {
+        "name": "白术",
+        "dosage": "9g"
+      },
+      {
+        "name": "甘草",
+        "dosage": "9g"
+      }
     ],
     "indications": "脾胃虚寒证。症见脘腹绵绵作痛，喜温喜按，呕吐便溏，脘痞食少，畏寒肢冷，口不渴，舌淡苔白润，脉沉细或沉迟无力。",
-    "modernUse": ["慢性胃炎、胃及十二指肠溃疡属虚寒者", "慢性结肠炎", "小儿消化不良属脾胃虚寒者"]
+    "modernUse": "慢性胃炎、胃及十二指肠溃疡属虚寒者；慢性结肠炎；小儿消化不良属脾胃虚寒者"
   },
   {
     "id": 30,
@@ -504,17 +1131,44 @@
     "source": "《伤寒论》",
     "originalText": "伤寒脉结代，心动悸，炙甘草汤主之。",
     "composition": [
-      { "name": "炙甘草", "dosage": "12g" },
-      { "name": "生姜", "dosage": "9g" },
-      { "name": "人参", "dosage": "6g" },
-      { "name": "生地黄", "dosage": "30g" },
-      { "name": "桂枝", "dosage": "9g" },
-      { "name": "阿胶", "dosage": "6g" },
-      { "name": "麦冬", "dosage": "9g" },
-      { "name": "麻仁", "dosage": "9g" },
-      { "name": "大枣", "dosage": "10枚" }
+      {
+        "name": "炙甘草",
+        "dosage": "12g"
+      },
+      {
+        "name": "生姜",
+        "dosage": "9g"
+      },
+      {
+        "name": "人参",
+        "dosage": "6g"
+      },
+      {
+        "name": "生地黄",
+        "dosage": "30g"
+      },
+      {
+        "name": "桂枝",
+        "dosage": "9g"
+      },
+      {
+        "name": "阿胶",
+        "dosage": "6g"
+      },
+      {
+        "name": "麦冬",
+        "dosage": "9g"
+      },
+      {
+        "name": "麻仁",
+        "dosage": "9g"
+      },
+      {
+        "name": "大枣",
+        "dosage": "10枚"
+      }
     ],
     "indications": "阴血不足，心脉失养证。症见脉结代，心动悸，虚羸少气，舌光少苔或质干而瘦小。",
-    "modernUse": ["心律失常（早搏、房颤等）", "冠心病心功能不全", "病毒性心肌炎恢复期"]
+    "modernUse": "心律失常（早搏、房颤等）；冠心病心功能不全；病毒性心肌炎恢复期"
   }
 ]

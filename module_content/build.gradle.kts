@@ -27,8 +27,6 @@ dependencies {
     // 依赖 health_engine 获取 LlmClient + ApiKeyProvider（统一通义千问入口）
     implementation(project(":module_health_engine"))
 
-    // 本地 JSON 解析（冷启动阶段加载种子数据）
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     // 协程
     implementation(libs.coroutines.android)
     // Timber
