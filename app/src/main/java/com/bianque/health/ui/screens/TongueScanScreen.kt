@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -193,15 +194,16 @@ fun TongueScanScreen(
                         }
                         drawRoundRect(
                             frameColor.copy(alpha = 0.25f),
-                            guideLeft, guideTop, guideRight - guideLeft, guideBottom - guideTop,
-                            radius
+                            topLeft = Offset(guideLeft, guideTop),
+                            size = Size(guideRight - guideLeft, guideBottom - guideTop),
+                            cornerRadius = CornerRadius(radius, radius)
                         )
                         // 内框
                         drawRoundRect(
                             frameColor.copy(alpha = 0.12f),
-                            guideLeft + 6f, guideTop + 6f,
-                            guideRight - guideLeft - 12f, guideBottom - guideTop - 12f,
-                            radius - 6f
+                            topLeft = Offset(guideLeft + 6f, guideTop + 6f),
+                            size = Size(guideRight - guideLeft - 12f, guideBottom - guideTop - 12f),
+                            cornerRadius = CornerRadius(radius - 6f, radius - 6f)
                         )
 
                         // 四角标记
