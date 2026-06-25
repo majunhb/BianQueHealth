@@ -49,6 +49,7 @@ dependencies {
     implementation(project(":module_blood_pressure"))
     implementation(project(":module_pulse"))
     implementation(project(":module_health_engine"))
+    implementation(project(":module_content"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

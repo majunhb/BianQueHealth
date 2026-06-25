@@ -36,7 +36,8 @@ private data class SupportModule(
     val titleResId: Int,
     val descriptionResId: Int,
     val icon: ImageVector,
-    val color: Color
+    val color: Color,
+    val onClick: () -> Unit
 )
 
 // ─── 首页 ────────────────────────────────────────────────────
@@ -44,19 +45,26 @@ private data class SupportModule(
 @Composable
 fun MainScreen(
     onNavigateToAIDiagnosis: () -> Unit,
+    onNavigateToDiet: () -> Unit = {},
+    onNavigateToMeridian: () -> Unit = {},
+    onNavigateToHealthQuiz: () -> Unit = {},
+    onNavigateToDisease: () -> Unit = {},
+    onNavigateToHerb: () -> Unit = {},
+    onNavigateToPrescription: () -> Unit = {},
+    onNavigateToHealthTips: () -> Unit = {},
     onNavigateToReport: () -> Unit,
     onNavigateToSettings: () -> Unit = {}
 ) {
-    // 8 个辅助功能模块
+    // 8 个辅助功能模块（数据 + 点击回调）
     val supportModules = listOf(
-        SupportModule(R.string.module_diet, R.string.module_diet_desc, Icons.Default.Restaurant, Orange40),
-        SupportModule(R.string.module_meridian, R.string.module_meridian_desc, Icons.Default.AccountTree, Blue40),
-        SupportModule(R.string.module_health_quiz, R.string.module_health_quiz_desc, Icons.Default.Quiz, Warm40),
-        SupportModule(R.string.module_disease, R.string.module_disease_desc, Icons.Default.Coronavirus, Danger40),
-        SupportModule(R.string.module_herb, R.string.module_herb_desc, Icons.Default.LocalFlorist, Green40),
-        SupportModule(R.string.module_prescription, R.string.module_prescription_desc, Icons.Default.MenuBook, Purple40),
-        SupportModule(R.string.module_health_tips, R.string.module_health_tips_desc, Icons.Default.Lightbulb, Color(0xFF00838F)),
-        SupportModule(R.string.module_report, R.string.module_report_desc, Icons.Default.Assessment, Color(0xFF4A148C))
+        SupportModule(R.string.module_diet, R.string.module_diet_desc, Icons.Default.Restaurant, Orange40, onNavigateToDiet),
+        SupportModule(R.string.module_meridian, R.string.module_meridian_desc, Icons.Default.AccountTree, Blue40, onNavigateToMeridian),
+        SupportModule(R.string.module_health_quiz, R.string.module_health_quiz_desc, Icons.Default.Quiz, Warm40, onNavigateToHealthQuiz),
+        SupportModule(R.string.module_disease, R.string.module_disease_desc, Icons.Default.Coronavirus, Danger40, onNavigateToDisease),
+        SupportModule(R.string.module_herb, R.string.module_herb_desc, Icons.Default.LocalFlorist, Green40, onNavigateToHerb),
+        SupportModule(R.string.module_prescription, R.string.module_prescription_desc, Icons.Default.MenuBook, Purple40, onNavigateToPrescription),
+        SupportModule(R.string.module_health_tips, R.string.module_health_tips_desc, Icons.Default.Lightbulb, Color(0xFF00838F), onNavigateToHealthTips),
+        SupportModule(R.string.module_report, R.string.module_report_desc, Icons.Default.Assessment, Color(0xFF4A148C), onNavigateToReport)
     )
 
     // 呼吸动画
@@ -111,7 +119,7 @@ fun MainScreen(
             // ── 8 个辅助功能模块 ──
             itemsIndexed(supportModules) { _, module ->
                 ElevatedCard(
-                    onClick = { /* 后续迭代接入 */ },
+                    onClick = module.onClick,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),

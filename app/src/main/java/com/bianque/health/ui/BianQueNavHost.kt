@@ -19,6 +19,13 @@ fun BianQueNavHost() {
         composable("main") {
             MainScreen(
                 onNavigateToAIDiagnosis = { navController.navigate("ai_diagnosis") },
+                onNavigateToDiet = { navController.navigate("diet") },
+                onNavigateToMeridian = { navController.navigate("meridian") },
+                onNavigateToHealthQuiz = { navController.navigate("health_quiz") },
+                onNavigateToDisease = { navController.navigate("disease") },
+                onNavigateToHerb = { navController.navigate("herb") },
+                onNavigateToPrescription = { navController.navigate("prescription") },
+                onNavigateToHealthTips = { navController.navigate("health_tips") },
                 onNavigateToReport = { navController.navigate("report") },
                 onNavigateToSettings = { navController.navigate("privacy_settings") }
             )
@@ -41,7 +48,7 @@ fun BianQueNavHost() {
             )
         }
 
-        // ── 隐私同意页面（带目标路由参数） ──
+        // ── 隐私同意页面 ──
         composable("consent/{target}") { backStackEntry ->
             val target = backStackEntry.arguments?.getString("target") ?: "face"
             PrivacyConsentScreen(
@@ -53,28 +60,25 @@ fun BianQueNavHost() {
             )
         }
 
-        // ── 隐私设置页面 ──
+        // ── 隐私设置 ──
         composable("privacy_settings") {
-            PrivacySettingsScreen(
-                onBack = { navController.popBackStack() }
-            )
+            PrivacySettingsScreen(onBack = { navController.popBackStack() })
         }
 
-        // ── 各诊断功能页面 ──
-        composable("face") {
-            FaceScanScreen(onBack = { navController.popBackStack() })
-        }
-        composable("tongue") {
-            TongueScanScreen(onBack = { navController.popBackStack() })
-        }
-        composable("bp") {
-            BloodPressureScreen(onBack = { navController.popBackStack() })
-        }
-        composable("pulse") {
-            PulseScanScreen(onBack = { navController.popBackStack() })
-        }
-        composable("report") {
-            HealthReportScreen(onBack = { navController.popBackStack() })
-        }
+        // ── 诊断功能页面 ──
+        composable("face") { FaceScanScreen(onBack = { navController.popBackStack() }) }
+        composable("tongue") { TongueScanScreen(onBack = { navController.popBackStack() }) }
+        composable("bp") { BloodPressureScreen(onBack = { navController.popBackStack() }) }
+        composable("pulse") { PulseScanScreen(onBack = { navController.popBackStack() }) }
+        composable("report") { HealthReportScreen(onBack = { navController.popBackStack() }) }
+
+        // ── 辅助功能页面 ──
+        composable("diet") { DietScreen(onBack = { navController.popBackStack() }) }
+        composable("meridian") { MeridianScreen(onBack = { navController.popBackStack() }) }
+        composable("health_quiz") { HealthQuizScreen(onBack = { navController.popBackStack() }) }
+        composable("disease") { DiseaseScreen(onBack = { navController.popBackStack() }) }
+        composable("herb") { HerbScreen(onBack = { navController.popBackStack() }) }
+        composable("prescription") { PrescriptionScreen(onBack = { navController.popBackStack() }) }
+        composable("health_tips") { HealthTipsScreen(onBack = { navController.popBackStack() }) }
     }
 }
