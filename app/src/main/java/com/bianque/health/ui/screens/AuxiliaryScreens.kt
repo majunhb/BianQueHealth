@@ -32,7 +32,7 @@ import javax.inject.Inject
 @Composable
 fun DietScreen(onBack: () -> Unit) {
     val viewModel: DietViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
     val constitutions = listOf("平和质", "气虚质", "阳虚质", "阴虚质", "痰湿质", "湿热质", "血瘀质", "气郁质", "特禀质")
     var selected by remember { mutableStateOf<String?>(null) }
 
@@ -172,7 +172,7 @@ class DietViewModel @Inject constructor(
 @Composable
 fun MeridianScreen(onBack: () -> Unit) {
     val viewModel: MeridianViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
     var selectedMeridian by remember { mutableStateOf<String?>(null) }
     val meridians = viewModel.meridians
 
@@ -324,7 +324,7 @@ class MeridianViewModel @Inject constructor(
 @Composable
 fun HealthQuizScreen(onBack: () -> Unit) {
     val viewModel: HealthQuizViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
 
     LaunchedEffect(Unit) {
         viewModel.loadQuizzes()
@@ -418,7 +418,7 @@ class HealthQuizViewModel @Inject constructor(
 @Composable
 fun DiseaseScreen(onBack: () -> Unit) {
     val viewModel: DiseaseViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
 
     LaunchedEffect(Unit) {
         viewModel.loadData(null)
@@ -540,7 +540,7 @@ class DiseaseViewModel @Inject constructor(
 @Composable
 fun HerbScreen(onBack: () -> Unit) {
     val viewModel: HerbViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
 
     LaunchedEffect(Unit) {
         viewModel.loadData(null)
@@ -641,7 +641,7 @@ class HerbViewModel @Inject constructor(
 @Composable
 fun PrescriptionScreen(onBack: () -> Unit) {
     val viewModel: PrescriptionViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
 
     LaunchedEffect(Unit) {
         viewModel.loadData(null)
@@ -745,7 +745,7 @@ class PrescriptionViewModel @Inject constructor(
 @Composable
 fun HealthTipsScreen(onBack: () -> Unit) {
     val viewModel: HealthTipsViewModel = hiltViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state
 
     LaunchedEffect(Unit) {
         viewModel.loadArticles(null, null)
@@ -802,10 +802,11 @@ fun HealthArticleCard(article: HealthArticle) {
             }
             Text("来源：${article.source}", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
             if (article.solarTerm != null) {
+                val term = article.solarTerm
                 FilterChip(
                     selected = true,
                     onClick = {},
-                    label = { Text(article.solarTerm, fontSize = 11.sp) },
+                    label = { Text(term, fontSize = 11.sp) },
                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFFE0F7FA))
                 )
             }
