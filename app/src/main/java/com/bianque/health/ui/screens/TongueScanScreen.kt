@@ -30,7 +30,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -175,28 +174,34 @@ fun TongueScanScreen(
                         val guideBottom = guideTop + guideH
                         val radius = 40f
 
-                        // 四周暗色遮罩
-                        val path = Path().apply {
-                            addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, w, h, 0f, 0f), Path.Direction.CW)
-                            addRoundRect(androidx.compose.ui.geometry.RoundRect(guideLeft, guideTop, guideRight, guideBottom, radius, radius), Path.Direction.CCW)
-                        }
-                        drawPath(path, Color.Black.copy(alpha = 0.6f))
+                        // 四周暗色遮罩（4个矩形覆盖引导框之外的区域）
+                        val dimColor = Color.Black.copy(alpha = 0.6f)
+                        // 上
+                        drawRect(dimColor, Offset.Zero, Size(w, guideTop))
+                        // 下
+                        drawRect(dimColor, Offset(0f, guideBottom), Size(w, h - guideBottom))
+                        // 左
+                        drawRect(dimColor, Offset(0f, guideTop), Size(guideLeft, guideH))
+                        // 右
+                        drawRect(dimColor, Offset(guideRight, guideTop), Size(w - guideRight, guideH))
 
-                        // 引导框
+                        // 引导框（外框 + 内填充模拟轮廓效果）
                         val frameColor = when (uiState.detectionState) {
                             DetectionState.NOT_DETECTED -> Color.White.copy(alpha = 0.4f)
                             DetectionState.POOR_QUALITY -> OutlineYellow
                             DetectionState.READY -> OutlineGreen
                         }
                         drawRoundRect(
-                            frameColor, guideLeft, guideTop, guideRight - guideLeft, guideBottom - guideTop,
-                            radius, style = Stroke(width = 3f)
+                            frameColor.copy(alpha = 0.25f),
+                            guideLeft, guideTop, guideRight - guideLeft, guideBottom - guideTop,
+                            radius
                         )
                         // 内框
                         drawRoundRect(
-                            frameColor.copy(alpha = 0.3f), guideLeft + 6f, guideTop + 6f,
+                            frameColor.copy(alpha = 0.12f),
+                            guideLeft + 6f, guideTop + 6f,
                             guideRight - guideLeft - 12f, guideBottom - guideTop - 12f,
-                            radius - 6f, style = Stroke(width = 1.5f)
+                            radius - 6f
                         )
 
                         // 四角标记
