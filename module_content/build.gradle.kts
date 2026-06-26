@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.bianque.health.content"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26

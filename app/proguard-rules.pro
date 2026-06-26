@@ -1,80 +1,107 @@
 # === BianQueHealth ProGuard Rules ===
-# 健康数据应用 — 平衡混淆与功能保留
+# 健康数据应用 — 完整混淆规则，覆盖所有模块
 
 # --- 保留注解 ---
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable
 -keepattributes InnerClasses
 -keepattributes EnclosingMethod
+-keepattributes Signature
+-keepattributes Exceptions
+-keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations
 
 # --- 保留项目核心类 ---
 -keep class com.bianque.health.** { *; }
 
-# --- Hilt / Dagger ---
+# ============ Hilt / Dagger ============
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+-keep class dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+-keepclasseswithmembers class * {
+    @dagger.hilt.* <init>(...);
+}
 -dontwarn dagger.hilt.**
 
-# --- Room ---
+# ============ Room ============
 -keep class * extends androidx.room.RoomDatabase { *; }
 -keep class com.bianque.health.base.data.local.** { *; }
 -keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao class * { *; }
+-keepclassmembers class * {
+    @androidx.room.* <fields>;
+    @androidx.room.* <methods>;
+}
 -dontwarn androidx.room.**
 
-# --- SQLCipher ---
+# ============ SQLCipher ============
 -keep class net.sqlcipher.** { *; }
+-keep class net.sqlcipher.database.** { *; }
 -dontwarn net.sqlcipher.**
 
-# --- ML Kit ---
+# ============ ML Kit ============
 -keep class com.google.mlkit.** { *; }
 -dontwarn com.google.mlkit.**
 
-# --- CameraX ---
+# ============ CameraX ============
 -keep class androidx.camera.** { *; }
 -dontwarn androidx.camera.**
 
-# --- TensorFlow Lite ---
+# ============ TensorFlow Lite ============
 -keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-keep class org.tensorflow.lite.nnapi.** { *; }
 -dontwarn org.tensorflow.lite.**
 
-# --- MediaPipe ---
+# ============ MediaPipe ============
 -keep class com.google.mediapipe.** { *; }
+-keep class com.google.mediapipe.tasks.** { *; }
+-keep class com.google.mediapipe.framework.** { *; }
 -dontwarn com.google.mediapipe.**
 
-# --- Timber ---
--dontwarn timber.log.**
-
-# --- Coroutines ---
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
-
-# --- DataStore ---
--keep class androidx.datastore.** { *; }
--dontwarn androidx.datastore.**
-
-# --- Security Crypto ---
--keep class androidx.security.crypto.** { *; }
--dontwarn androidx.security.crypto.**
-
-# --- Compose ---
--dontwarn androidx.compose.**
--keep class androidx.compose.** { *; }
-
-# --- Retrofit / OkHttp ---
--dontwarn retrofit2.**
--keep class retrofit2.** { *; }
--keepattributes Signature
--keepattributes Exceptions
+# ============ OkHttp ============
+-keep class okhttp3.** { *; }
+-keep class okio.** { *; }
+-keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
-# --- Gson ---
+# ============ Timber ============
+-dontwarn timber.log.**
+
+# ============ Coroutines ============
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembernames class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+
+# ============ Compose ============
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
+
+# ============ Hilt Navigation Compose ============
+-keep class androidx.hilt.navigation.compose.** { *; }
+-dontwarn androidx.hilt.navigation.**
+
+# ============ DataStore ============
+-keep class androidx.datastore.** { *; }
+-dontwarn androidx.datastore.**
+
+# ============ Security Crypto ============
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
+
+# ============ Coil ============
+-keep class coil.** { *; }
+-dontwarn coil.**
+
+# ============ Gson / JSON ============
 -keep class com.google.gson.** { *; }
--keepattributes *Annotation
+-keep class org.json.** { *; }
 -dontwarn com.google.gson.**
 
-# --- 移除日志 (Release) ---
+# ============ 移除日志 (Release) ============
 -assumenosideeffects class timber.log.Timber {
     public static void v(...);
     public static void d(...);
